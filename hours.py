@@ -1,5 +1,6 @@
 from typing import Annotated
 from datetime import date, timedelta
+import calendar
 
 from fastapi import FastAPI, Depends, Path
 from fastapi.templating import Jinja2Templates
@@ -10,6 +11,7 @@ from enum import Enum
 from starlette.exceptions import HTTPException
 
 from dark_swag import FastAPI
+
 
 
 class SeshType(Enum):
@@ -227,6 +229,54 @@ def get_stats(session: SessionDep):
 
 
     return result
+
+
+@app.get("/calendar-april/", tags=["calendar"])
+def read_calendar_april(session: SessionDep):
+    april_start = date(2026, 4, 1)
+    april_end = date(2026, 4, 30)
+    seshs = session.exec(select(Sesh).where(Sesh.day >= april_start, Sesh.day <= april_end, Sesh.type == "programming")).all()
+    res = []
+    days = [[] for i in range(0, 31)]
+
+    for sesh in seshs:
+        day_n = sesh.day.day
+        days[day_n].append(sesh)
+
+    for day_id in range(1, len(days)-1):
+        day = days[day_id]
+        if len(days[day_id]) > 0:
+            res.append({f"April {day_id}th": day})
+
+    return res
+
+
+@app.get("/calendar/", tags=["calendar"])
+def read_calendar(year: int, month: int, session: SessionDep):
+    m_start = date(year, month, 1)
+    last_day = calendar.monthrange(year, month)[1]
+    m_end = date(year, month, last_day)
+    m_name = calendar.month_name[month]
+
+    seshs = session.exec(select(Sesh).where(Sesh.day >= m_start, Sesh.day <= m_end, Sesh.type == "programming")).all()
+    res = []
+    days = [[] for i in range(0, 31)]
+
+    for sesh in seshs:
+        day_n = sesh.day.day
+        days[day_n].append(sesh)
+
+    for day_num in range(1, last_day+1):
+        if days[day_num]:
+            res.append({
+                "date": f"{m_name} {day_num}th, {year}",
+                "sessions": days[day_num],
+                "total number of hours": sum(s.length for s in days[day_num])/60
+            })
+
+    return res
+
+
 
 
 

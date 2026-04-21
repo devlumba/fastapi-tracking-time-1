@@ -2,7 +2,7 @@ from typing import Annotated
 from datetime import date, timedelta
 import calendar
 
-from fastapi import FastAPI, Depends, Path
+from fastapi import FastAPI, Depends, Path, Query
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
@@ -66,7 +66,10 @@ SessionDep = Annotated[Session, Depends(get_session)]
 
 app = FastAPI(
     title="tracking sesh's",
-    summary="larping it rn",
+    summary="larping it rn, \n"
+            "TODO: add descriptions of what each endpoint does, example use cases, error responses documentation, auth instructions?\n"
+            "probably tests too",
+
     version="1.6.7",
 )
 
@@ -277,8 +280,21 @@ def read_calendar(year: int, month: int, session: SessionDep):
     return res
 
 
+@app.get("/read_specific_day/", tags=["calendar"])
+async def read_specific_day(session: SessionDep,
+        year: Annotated[int, Query(le=2030, ge=2026)],
+        month: Annotated[int, Query(le=12, ge=1)],
+        day: Annotated[int, Query(le=31, ge=1)]):  # gotta add limiters? already adding
+    seshs = session.exec(select(Sesh).where(Sesh.day == date(year, month, day), Sesh.type == "programming")).all()
+    res = []
+    m_name = calendar.month_name[month]
+
+    for sesh in seshs:
+        day_n = sesh.day.day
+        res.append(sesh)
 
 
+    return {f"Seshs on {m_name} {day}th, {year}:": res}
 
 
 

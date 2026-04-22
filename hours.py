@@ -2,7 +2,7 @@ from typing import Annotated
 from datetime import date, timedelta
 import calendar
 
-from fastapi import FastAPI, Depends, Path, Query
+from fastapi import FastAPI, Depends, Path, Query, Body
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
@@ -90,8 +90,28 @@ def read_seshs(session: SessionDep):
     return seshs
 
 
+@app.get("/seshs/specific_type", tags=["crud"])
+async def read_seshs_by_type(session: SessionDep, sesh_type: SeshType = "programming"):
+    seshs = session.exec(select(Sesh).where(Sesh.type==sesh_type)).all()
+    return {f"All seshs from {type}:": seshs}
+
+
+
+# @app.post("/seshs/", tags=["crud"])
+# def create_seshs(sesh: SeshCreate, sesh_type:SeshType, session: SessionDep):
+#     db_sesh = Sesh.model_validate(sesh)
+#     db_sesh.type = sesh_type
+#     session.add(db_sesh)
+#     session.commit()
+#     session.refresh(db_sesh)
+#     return db_sesh
+
+
 @app.post("/seshs/", tags=["crud"])
-def create_seshs(sesh: SeshCreate, sesh_type:SeshType, session: SessionDep):
+def create_seshs(session: SessionDep, sesh_length: int, sesh_desc: str = "desc",  # i COULD add annotation with restrictions here # todoooooooooooooooo
+                 sesh_type: SeshType = "programming",
+                 sesh_day: date = date.today()):
+    sesh = SeshCreate(length=sesh_length, specifics=sesh_desc, day=sesh_day, type=sesh_type)
     db_sesh = Sesh.model_validate(sesh)
     db_sesh.type = sesh_type
     session.add(db_sesh)
@@ -230,8 +250,65 @@ def get_stats(session: SessionDep):
         "day_streak": day_streak,
     }
 
-
     return result
+
+
+@app.get("/quick_stats/type", tags=["crud"])
+def get_stats_type(session: SessionDep, sesh_type: SeshType = "programming"):
+    today = date.today()
+    time_total = session.exec(select(func.sum(Sesh.length)).where(Sesh.type == sesh_type)).one() or 0
+    time_week = session.exec(select(func.sum(Sesh.length)).where(Sesh.type == sesh_type, Sesh.day >= today - timedelta(days=6))).one() or 0
+    time_fortnight = session.exec(select(func.sum(Sesh.length)).where(Sesh.type == sesh_type, Sesh.day >= today - timedelta(days=13))).one() or 0
+    time_month = session.exec(select(func.sum(Sesh.length)).where(Sesh.type == sesh_type, Sesh.day >= today - timedelta(days=29))).one() or 0
+
+    day_streak = 0
+    day_skipped = False
+    check_day = today
+
+    while True:
+        sesh_count = session.exec(select(func.count(Sesh.id)).where(Sesh.day == check_day, Sesh.type == sesh_type)).one()
+        if sesh_count == 0:
+            break
+        else:
+            check_day -= timedelta(days=1)
+            day_streak += 1
+
+    result = {
+        "time_total_hours": time_total/60,
+        "time_week_hours": time_week/60,
+        "time_fortnight_hours": time_fortnight/60,
+        "time_month_hours": time_month/60,
+
+        "day_streak": day_streak,
+    }
+
+    return {f"Quick stats for {sesh_type}:": result}
+
+
+@app.get("/quick_stats/type/age", tags=["crud"])
+def get_stats_type_age(session: SessionDep, sesh_type: SeshType = "programming", cutoff_date: date = date.today()):
+    today = date.today()
+    time_total = session.exec(select(func.sum(Sesh.length)).where(Sesh.type == sesh_type, Sesh.day >= cutoff_date, Sesh.day <= today)).one() or 0
+
+    day_streak = 0
+    day_skipped = False
+    check_day = today
+
+    while True:
+        sesh_count = session.exec(select(func.count(Sesh.id)).where(Sesh.day == check_day, Sesh.type == sesh_type)).one()
+        if sesh_count == 0:
+            break
+        else:
+            check_day -= timedelta(days=1)
+            day_streak += 1
+
+    result = {
+        "time_total_hours": time_total/60,
+
+        "day_streak": day_streak,
+    }
+
+    return {f"Quick stats for {sesh_type} since {cutoff_date}:": result}
 
 
 @app.get("/calendar-april/", tags=["calendar"])

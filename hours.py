@@ -25,7 +25,7 @@ class SeshType(Enum):
 class SeshBase(SQLModel):
     length: int | None = Field(default=None, index=True)
     specifics: str = Field()
-    day: date = Field(index=True)
+    day: date = Field(index=True, default_factory=date.today)
 
 
 class Sesh(SeshBase, table=True):
@@ -90,13 +90,6 @@ def read_seshs(session: SessionDep):
     return seshs
 
 
-@app.get("/seshs/specific_type", tags=["crud"])
-async def read_seshs_by_type(session: SessionDep, sesh_type: SeshType = "programming"):
-    seshs = session.exec(select(Sesh).where(Sesh.type==sesh_type)).all()
-    return {f"All seshs from {type}:": seshs}
-
-
-
 # @app.post("/seshs/", tags=["crud"])
 # def create_seshs(sesh: SeshCreate, sesh_type:SeshType, session: SessionDep):
 #     db_sesh = Sesh.model_validate(sesh)
@@ -144,16 +137,16 @@ def update_sesh(session: SessionDep, sesh: SeshUpdate, sesh_id: int):
     return db_sesh
 
 
-# basic routes done
+# basic crud routes done
 
 
-@app.get("/seshs/programming/", tags=["programming"]) # could be read_type but it's just 2
+@app.get("/seshs/programming/", tags=["programming(legacy)"], deprecated=True) # could be read_type but it's just 2
 def read_seshs_programming(session: SessionDep):
     seshs = session.exec(select(Sesh).where(Sesh.type == "programming")).all()
     return seshs
 
 
-@app.get("/seshs/duolingo/", tags=["seshs_general"]) # could be read_type but it's just 2
+@app.get("/seshs/duolingo/", tags=["legacy"], deprecated=True) # could be read_type but it's just 2
 def read_seshs_duolingo(session: SessionDep):
     seshs = session.exec(select(Sesh).where(Sesh.type == "duolingo")).all()
     return seshs
@@ -170,14 +163,14 @@ def read_seshs_duolingo(session: SessionDep):
 #     return seshs
 
 
-@app.get("/seshs/time/{age}", tags=["seshs_general"])
+@app.get("/seshs/DONOTUSE/{age}", tags=["legacy"], deprecated=True)
 def read_seshs_age(age: int, session: SessionDep):
     cutoff_day = date.today() - timedelta(days=age)
     seshs = session.exec(select(Sesh).where(Sesh.day >= cutoff_day)).all()
     return seshs
 
 
-@app.get("/seshs/time/{age}/time", tags=["seshs_general"])
+@app.get("/seshs/DONOTUSE/{age}/time", tags=["legacy"], deprecated=True)  # i should just comment these off bruh
 def read_time_age(sesh_type: SeshType, age: int, session: SessionDep):
     cutoff_day = date.today() - timedelta(days=age)
     seshs = session.exec(select(Sesh).where(Sesh.type == sesh_type, Sesh.day >= cutoff_day)).all()
@@ -187,28 +180,28 @@ def read_time_age(sesh_type: SeshType, age: int, session: SessionDep):
     return {"minutes": sum, "hours": sum/60}
 
 
-@app.get("/seshs/programming/week", tags=["programming"])
+@app.get("/seshs/programming/week", tags=["programming(legacy)"], deprecated=True)
 def read_seshs_programming_week(session: SessionDep):
     cutoff_date = date.today() - timedelta(days=6)
     time = session.exec(select(func.sum(Sesh.length)).where(Sesh.type == SeshType.programming, Sesh.day >= cutoff_date)).one() or 0
     return {"minutes last week": time, "hours last week": time/60}
 
 
-@app.get("/seshs/programming/fortnight", tags=["programming"])
+@app.get("/seshs/programming/fortnight", tags=["programming(legacy)"], deprecated=True)
 def read_seshs_programming_fortnight(session: SessionDep):
     cutoff_date = date.today() - timedelta(days=13)
     time = session.exec(select(func.sum(Sesh.length)).where(Sesh.type == "programming", Sesh.day >= cutoff_date)).one() or 0
     return {"minutes last fortnight": time, "hours last fortnight": time/60}
 
 
-@app.get("/seshs/programming/month", tags=["programming"])
+@app.get("/seshs/programming/month", tags=["programming(legacy)"], deprecated=True)
 def read_seshs_programming_month(session: SessionDep):
     cutoff_date = date.today() - timedelta(days=29)
     time = session.exec(select(func.sum(Sesh.length)).where(Sesh.type == "programming", Sesh.day >= cutoff_date)).one() or 0
     return {"minutes last month": time, "hours last month": time/60}
 
 
-@app.get("/seshs/categorized", tags=["seshs_general"])
+@app.get("/seshs/categorized", tags=["legacy"], deprecated=True)
 def read_seshs_categorized(session: SessionDep):
     types = list(SeshType)
 
@@ -221,7 +214,7 @@ def read_seshs_categorized(session: SessionDep):
     return result
 
 
-@app.get("/quick_stats/", tags=["programming"])
+@app.get("/quick_stats/", tags=["programming(legacy)"], deprecated=True)
 def get_stats(session: SessionDep):
     today = date.today()
     time_total = session.exec(select(func.sum(Sesh.length)).where(Sesh.type == "programming")).one() or 0
@@ -253,7 +246,61 @@ def get_stats(session: SessionDep):
     return result
 
 
-@app.get("/quick_stats/type", tags=["crud"])
+@app.get("/seshs/{sesh_type}/all", tags=["crud-detailed"], summary="Read All Seshs of a Certain sesh_type")
+async def read_seshs_by_type(session: SessionDep, sesh_type: SeshType = "programming"):
+    seshs = session.exec(select(Sesh).where(Sesh.type==sesh_type)).all()
+    return {f"All seshs from {type}:": seshs}
+
+
+@app.get("/seshs/{sesh_type}/time/", tags=["crud-detailed"], summary="Read Just Time of a Certain sesh_type(total of all time)")
+def read_time_age(sesh_type: SeshType, age: int, session: SessionDep):
+    cutoff_day = date.today() - timedelta(days=age)
+    seshs = session.exec(select(Sesh).where(Sesh.type == sesh_type, Sesh.day >= cutoff_day)).all()
+    sum = 0
+    for i in seshs:
+        sum += i.length
+    return {"minutes": sum, "hours": sum/60}
+
+
+@app.get("/seshs/{sesh_type}/time/week", tags=["crud-detailed"],
+         summary="Get Total Time Spent on a Certain sesh_type Last Week")
+def read_seshs_type_week(session: SessionDep, sesh_type: SeshType = "programming"):
+    cutoff_date = date.today() - timedelta(days=6)
+    time = session.exec(select(func.sum(Sesh.length)).where(Sesh.type == sesh_type, Sesh.day >= cutoff_date)).one() or 0
+    return {f"Reading minutes/hours of past week for {sesh_type.name}: ":
+                {"minutes last week": time, "hours last week": time / 60}}
+
+
+@app.get("/seshs/{sesh_type}/quick_stats", tags=["crud-detailed"],
+         summary="Get total_hours and day_streak for a certain sesh_type from a certain date to today")
+def get_full_stats_type_age(session: SessionDep, sesh_type: SeshType = "programming", cutoff_date: date = date.today()):
+    today = date.today()
+    time_total = session.exec(select(func.sum(Sesh.length)).where(Sesh.type == sesh_type, Sesh.day >= cutoff_date, Sesh.day <= today)).one() or 0
+
+    day_streak = 0
+    day_skipped = False
+    check_day = today
+
+    while True:
+        sesh_count = session.exec(select(func.count(Sesh.id)).where(Sesh.day == check_day, Sesh.type == sesh_type)).one()
+        if sesh_count == 0:
+            break
+        else:
+            check_day -= timedelta(days=1)
+            day_streak += 1
+
+    result = {
+        "time_total_hours": time_total/60,
+
+        "day_streak": day_streak,
+    }
+
+    return {f"Quick stats for {sesh_type} since {cutoff_date}:": result}
+
+
+@app.get("/seshs/{sesh_type}/full_stats", tags=["crud-detailed"],
+         summary="Get Stats for a selected sesh_type(total hours, "
+                 "time last week, fortnight, month, and a day streak)")
 def get_stats_type(session: SessionDep, sesh_type: SeshType = "programming"):
     today = date.today()
     time_total = session.exec(select(func.sum(Sesh.length)).where(Sesh.type == sesh_type)).one() or 0
@@ -282,33 +329,7 @@ def get_stats_type(session: SessionDep, sesh_type: SeshType = "programming"):
         "day_streak": day_streak,
     }
 
-    return {f"Quick stats for {sesh_type}:": result}
-
-
-@app.get("/quick_stats/type/age", tags=["crud"])
-def get_stats_type_age(session: SessionDep, sesh_type: SeshType = "programming", cutoff_date: date = date.today()):
-    today = date.today()
-    time_total = session.exec(select(func.sum(Sesh.length)).where(Sesh.type == sesh_type, Sesh.day >= cutoff_date, Sesh.day <= today)).one() or 0
-
-    day_streak = 0
-    day_skipped = False
-    check_day = today
-
-    while True:
-        sesh_count = session.exec(select(func.count(Sesh.id)).where(Sesh.day == check_day, Sesh.type == sesh_type)).one()
-        if sesh_count == 0:
-            break
-        else:
-            check_day -= timedelta(days=1)
-            day_streak += 1
-
-    result = {
-        "time_total_hours": time_total/60,
-
-        "day_streak": day_streak,
-    }
-
-    return {f"Quick stats for {sesh_type} since {cutoff_date}:": result}
+    return {f"Quick stats for {sesh_type.name}:": result}
 
 
 @app.get("/calendar-april/", tags=["calendar"])
@@ -332,7 +353,7 @@ def read_calendar_april(session: SessionDep):
 
 
 @app.get("/calendar/", tags=["calendar"])
-def read_calendar(year: int, month: int, session: SessionDep):
+def read_calendar(session: SessionDep, year: int = 2026, month: int = 4):
     m_start = date(year, month, 1)
     last_day = calendar.monthrange(year, month)[1]
     m_end = date(year, month, last_day)

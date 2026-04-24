@@ -395,6 +395,46 @@ async def read_specific_day(session: SessionDep,
     return {f"Seshs on {m_name} {day}th, {year}:": res}
 
 
+def month_to_num(shortMonth):
+    return {
+            'jan': 1,
+            'feb': 2,
+            'mar': 3,
+            'apr': 4,
+            'may': 5,
+            'jun': 6,
+            'jul': 7,
+            'aug': 8,
+            'sep': 9,
+            'oct': 10,
+            'nov': 11,
+            'dec': 12
+    }[shortMonth]
+
+
+@app.get("/calendar/{year}/{month_name}", tags=["calendar"])
+async def read_specific_month(session: SessionDep,
+        year: Annotated[int, Path(le=2030, ge=2026)],
+        month_name: Annotated[str, Path(min_length=3, max_length=3)]):
+
+    month = month_to_num(month_name)
+    m_start = date(year, month, 1)
+    last_day = calendar.monthrange(year, month)[1]
+    m_end = date(year, month, last_day)
+    m_name = calendar.month_name[month]
+    seshs = session.exec(select(Sesh).where(Sesh.day >= m_start, Sesh.day <= m_end, Sesh.type == "programming")).all()
+
+    res = []
+    m_name = calendar.month_name[month]
+
+    for sesh in seshs:
+        day_n = sesh.day.day
+        res.append(sesh)
+
+
+    return {f"Seshs from {m_name} {year}:": res}
+
+
 
 
 

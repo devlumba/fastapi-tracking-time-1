@@ -9,7 +9,7 @@ from .dependencies import SessionDep
 
 from dark_swag import FastAPI
 
-app = FastAPI(title="hours.py upgraded")
+app = FastAPI(title="hours.py upgraded", swagger_ui_parameters={"persistAuthorization": True})
 
 
 @app.on_event("startup")
@@ -20,13 +20,6 @@ def on_startup():
 @app.get("/")
 def root():
     return RedirectResponse(url="/docs_light")
-
-
-@app.get("/seshs/", tags=["crud"])
-def read_seshs(session: SessionDep):
-    seshs = session.exec(select(Sesh)).all()
-    return seshs
-
 
 
 app.include_router(crud_basic.router)

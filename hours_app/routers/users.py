@@ -13,9 +13,10 @@ from sqlmodel import select
 
 from dark_swag import FastAPI
 
-from ..dependencies import SessionDep
+from ..dependencies import SessionDep, oauth2_scheme
 from ..models import Sesh, UserInDB, Token, TokenData, UserBase, UserCreate, UserPublic
 from ..database import Session
+
 
 SECRET_KEY = "f9208ed4f21b01559b9445e324694d6b7b0d48ab4bdece5364ce9cafbbb49079"
 ALGORITHM = "HS256"
@@ -25,7 +26,6 @@ password_hash = PasswordHash.recommended()  # I assume this is me choosing HOW t
 
 DUMMY_HASH = password_hash.hash("dummypassword")
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 router = APIRouter(tags=["users"])
@@ -116,7 +116,7 @@ async def create_user(session: SessionDep,
         raise HTTPException(status_code=401, detail="Passwords Not Matching")
     supposed_user = session.exec(select(UserInDB).where(UserInDB.username == username)).first()
     if supposed_user:
-        raise HTTPException(status_code="400", detail="This Username is Already Taken")
+        raise HTTPException(status_code=400, detail="This Username is Already Taken")
 
     hashed_password = get_password_hash(user.password)
     db_user_preval = UserInDB(username=user.username, full_name=user.full_name, hashed_password=hashed_password)
@@ -136,6 +136,8 @@ async def read_users_all(session: SessionDep) -> list[UserPublic]:
 @router.get("/users/{username:str}")
 async def read_specific_user(session: SessionDep, username: str) -> UserPublic:
     user = session.exec(select(UserInDB).where(UserInDB.username==username)).first()
+    if not user:
+        raise HTTPException(status_code=404, detail='fot nound')
     return user
 
 

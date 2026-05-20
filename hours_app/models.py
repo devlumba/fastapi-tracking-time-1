@@ -43,7 +43,7 @@ class SeshType(Enum):  # i could probably make SeshType just a string? or take v
 
 class SeshBase(SQLModel):
     length: int | None = Field(default=None, index=True)
-    specifics: str = Field()
+    specifics: str | None = Field(default=None)
     day: date = Field(index=True, default_factory=date.today)
     sub_tag_one: str | None = Field(index=True, default=None)
     sub_tag_two: str | None = Field(index=True, default=None)

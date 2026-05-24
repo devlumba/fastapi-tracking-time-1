@@ -16,7 +16,8 @@ from hours_app.dependencies import SessionDep
 
 # from dark_swag import FastAPI
 
-app = FastAPI(title="hours.py upgraded", swagger_ui_parameters={"persistAuthorization": True}, version="0.4")
+app = FastAPI(title="Онлайн-приложение для учета сессий. Поддержание хороших привычек!",
+              swagger_ui_parameters={"persistAuthorization": True}, version="0.4")
 application = ASGIMiddleware(app)
 
 @app.on_event("startup")

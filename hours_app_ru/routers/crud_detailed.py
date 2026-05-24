@@ -14,38 +14,38 @@ from hours_app.dependencies import SessionDep, oauth2_scheme, UserDep
 from hours_app.models import Sesh, SeshBase, SeshCreate, SeshUpdate, SeshType, UserInDB
 from hours_app.routers.users import get_current_user
 
-router = APIRouter(prefix="/seshs", tags=["crud-detailed"], dependencies=[Depends(oauth2_scheme)])
+router = APIRouter(prefix="/seshs", tags=["crud-детализированный"], dependencies=[Depends(oauth2_scheme)])
 
 
-@router.get("/{sesh_type}/all", summary="Read All Seshs of a Certain sesh_type")
+@router.get("/{sesh_type}/all", summary="Просмотреть все записи определенного типа")
 async def read_seshs_by_type(session: SessionDep,
                              current_user: Annotated[UserInDB, Depends(get_current_user)],
                              sesh_type: SeshType = "programming"):
     seshs = session.exec(select(Sesh).where(Sesh.type==sesh_type, Sesh.owner_id==current_user.id)).all()
-    return {f"All seshs from {sesh_type}:": seshs}
+    return {f"Все записи типа '{sesh_type}':": seshs}
 
 
-@router.get("/{sesh_type}/time/", summary="Read Just Time of a Certain sesh_type(total of all time)")
+@router.get("/{sesh_type}/time/", summary="Посмотреть сумму времени записей определенного типа")
 def read_time_age(sesh_type: SeshType, age: int, session: SessionDep, current_user: UserDep):
     cutoff_day = date.today() - timedelta(days=age)
     seshs = session.exec(select(Sesh).where(Sesh.type == sesh_type, Sesh.owner_id==current_user.id, Sesh.day >= cutoff_day)).all()
     sum = 0
     for i in seshs:
         sum += i.length
-    return {"minutes": sum, "hours": sum/60}
+    return {"минут": sum, "часов": sum/60}
 
 
 @router.get("/{sesh_type}/time/week",
-         summary="Get Total Time Spent on a Certain sesh_type Last Week")
+         summary="Просмотреть, сколько времени было проведено над определенным типом записи за последнюю неделю")
 def read_seshs_type_week(session: SessionDep, current_user: UserDep, sesh_type: SeshType = "programming"):
     cutoff_date = date.today() - timedelta(days=6)
     time = session.exec(select(func.sum(Sesh.length)).where(Sesh.type == sesh_type, Sesh.owner_id==current_user.id, Sesh.day >= cutoff_date)).one() or 0
-    return {f"Reading minutes/hours of past week for {sesh_type.name}: ":
-                {"minutes last week": time, "hours last week": time / 60}}
+    return {f"Просмотр минут/часов за последнюю неделю у типа '{sesh_type.name}': ":
+                {"минут": time, "часов": time / 60}}
 
 
 @router.get("/{sesh_type}/quick_stats",
-         summary="Get total_hours and day_streak for a certain sesh_type from a certain date to today")
+         summary="Просмотреть суммарное кол-во часов и сколько дней подряд выполяется определенный тип записи. От определенного дня по сегодня")
 def get_full_stats_type_age(session: SessionDep, current_user: UserDep, sesh_type: SeshType = "programming", cutoff_date: date = date.today()):
     today = date.today()
     time_total = session.exec(select(func.sum(Sesh.length)).where(Sesh.type == sesh_type, Sesh.owner_id==current_user.id, Sesh.day >= cutoff_date, Sesh.day <= today)).one() or 0
@@ -63,17 +63,17 @@ def get_full_stats_type_age(session: SessionDep, current_user: UserDep, sesh_typ
             day_streak += 1
 
     result = {
-        "time_total_hours": time_total/60,
+        "Часов Проведено Всего": time_total/60,
 
-        "day_streak": day_streak,
+        "Дней подряд": day_streak,
     }
 
-    return {f"Quick stats for {sesh_type} since {cutoff_date}:": result}
+    return {f"Сокращенная статистика для типа '{sesh_type}' начиная с {cutoff_date}:": result}
 
 
 @router.get("/{sesh_type}/full_stats",
-         summary="Get Stats for a selected sesh_type(total hours, "
-                 "time last week, fortnight, month, and a day streak)")
+         summary="Получить статистику по определнному типу записей(тотал часов,"
+                 "время за последнюю неделю, 2 недели, месяц, и сколько дней подряд.")
 def get_stats_type(session: SessionDep, current_user: UserDep, sesh_type: SeshType = "programming"):
     today = date.today()
     time_total = session.exec(select(func.sum(Sesh.length)).where(
@@ -99,15 +99,15 @@ def get_stats_type(session: SessionDep, current_user: UserDep, sesh_type: SeshTy
             day_streak += 1
 
     result = {
-        "time_total_hours": time_total/60,
-        "time_week_hours": time_week/60,
-        "time_fortnight_hours": time_fortnight/60,
-        "time_month_hours": time_month/60,
+        "Часов Проведено Всего": time_total/60,
+        "Часов Проведено за Последнюю Неделю": time_week/60,
+        "Часов Проведено За Последние 2 Недели": time_fortnight/60,
+        "Часов Проведено За Последний Месяц": time_month/60,
 
-        "day_streak": day_streak,
+        "Дней подряд": day_streak,
     }
 
-    return {f"Quick stats for {sesh_type.name}:": result}
+    return {f"Сокращенная статистика для типа '{sesh_type.name}':": result}
 
 
 

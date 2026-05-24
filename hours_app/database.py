@@ -1,5 +1,8 @@
 from sqlmodel import Session, create_engine, SQLModel
 
+# THIS FILE SHOULD NOT IMPORT FROM DEPENDENCIES at the top, at least? cuz at the top of dependencies.py there's an import
+# from database.py
+
 sqlite_file_name = "database.db"
 sqlite_url = f"sqlite:///{sqlite_file_name}"
 

@@ -3,6 +3,7 @@ from datetime import date, timedelta
 from enum import Enum
 from sqlmodel import SQLModel, Field, ForeignKey
 from pydantic import BaseModel
+from fastapi import Query
 
 
 class Token(BaseModel):
@@ -43,7 +44,7 @@ class SeshType(Enum):  # i could probably make SeshType just a string? or take v
 
 class SeshBase(SQLModel):
     length: int | None = Field(default=None, index=True)
-    specifics: str = Field()
+    specifics: str | None = Field(default=None)
     day: date = Field(index=True, default_factory=date.today)
     sub_tag_one: str | None = Field(index=True, default=None)
     sub_tag_two: str | None = Field(index=True, default=None)
@@ -58,7 +59,11 @@ class Sesh(SeshBase, table=True):  # == SeshInDB
 
 
 class SeshCreate(SeshBase):
-    pass
+    length: int | None = Query(default=None)
+    specifics: str | None = Query(default=None)
+    day: date = Query()
+    sub_tag_one: str | None = Query(default=None)
+    sub_tag_two: str | None = Query(default=None)
 
 
 class SeshUpdate(SeshBase):

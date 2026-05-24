@@ -10,17 +10,18 @@ from sqlmodel import Session, SQLModel, create_engine, Field, select, func
 from enum import Enum
 from starlette.exceptions import HTTPException
 
-from ..dependencies import SessionDep
-from ..models import Sesh, SeshType
+from hours_app.dependencies import SessionDep, oauth2_scheme, UserDep
+from hours_app.models import Sesh, SeshType
 
-router = APIRouter(prefix="/calendar", tags=["calendar"])
+router = APIRouter(prefix="/calendar", tags=["calendar"], dependencies=[Depends(oauth2_scheme)])
 
 
 @router.get("/april")
-def read_calendar_april(session: SessionDep):
+def read_calendar_april(session: SessionDep, current_user: UserDep):
     april_start = date(2026, 4, 1)
     april_end = date(2026, 4, 30)
-    seshs = session.exec(select(Sesh).where(Sesh.day >= april_start, Sesh.day <= april_end, Sesh.type == "programming")).all()
+    seshs = session.exec(select(Sesh).where(
+        Sesh.day >= april_start, Sesh.day <= april_end, Sesh.owner_id==current_user.id, Sesh.type == "programming")).all()
     res = []
     days = [[] for i in range(0, 31)]
 
@@ -37,13 +38,14 @@ def read_calendar_april(session: SessionDep):
 
 
 @router.get("/")
-def read_calendar(session: SessionDep, year: int = 2026, month: int = 4):
+def read_calendar(session: SessionDep, current_user: UserDep, year: int = 2026, month: int = 4):
     m_start = date(year, month, 1)
     last_day = calendar.monthrange(year, month)[1]
     m_end = date(year, month, last_day)
     m_name = calendar.month_name[month]
 
-    seshs = session.exec(select(Sesh).where(Sesh.day >= m_start, Sesh.day <= m_end, Sesh.type == "programming")).all()
+    seshs = session.exec(select(Sesh).where(
+        Sesh.day >= m_start, Sesh.day <= m_end, Sesh.owner_id==current_user.id, Sesh.type == "programming")).all()
     res = []
     days = [[] for i in range(0, 31)]
 
@@ -51,7 +53,9 @@ def read_calendar(session: SessionDep, year: int = 2026, month: int = 4):
         day_n = sesh.day.day
         days[day_n].append(sesh)
 
-    for day_num in range(1, last_day+1):
+    for day_num in range(1, last_day):
+        print(day_num)
+        print(last_day)
         if days[day_num]:
             res.append({
                 "date": f"{m_name} {day_num}th, {year}",
@@ -80,7 +84,7 @@ def month_to_num(shortMonth):
 
 
 @router.get("/{year}/{month_name}")
-async def read_specific_month(session: SessionDep,
+async def read_specific_month(session: SessionDep, current_user: UserDep,
         year: Annotated[int, Path(le=2030, ge=2026)],
         month_name: Annotated[str, Path(min_length=3, max_length=3)]):
 
@@ -89,7 +93,8 @@ async def read_specific_month(session: SessionDep,
     last_day = calendar.monthrange(year, month)[1]
     m_end = date(year, month, last_day)
     m_name = calendar.month_name[month]
-    seshs = session.exec(select(Sesh).where(Sesh.day >= m_start, Sesh.day <= m_end, Sesh.type == "programming")).all()
+    seshs = session.exec(select(Sesh).where(
+        Sesh.day >= m_start, Sesh.day <= m_end, Sesh.owner_id==current_user.id, Sesh.type == "programming")).all()
 
     res = []
     m_name = calendar.month_name[month]
@@ -103,11 +108,12 @@ async def read_specific_month(session: SessionDep,
 
 
 @router.get("/{year}/{month}/{day}", summary="Read Specific Day")
-async def read_specific_day(session: SessionDep,
+async def read_specific_day(session: SessionDep, current_user: UserDep,
         year: Annotated[int, Path(le=2030, ge=2026)],
         month: Annotated[int, Path(le=12, ge=1)],
         day: Annotated[int, Path(le=31, ge=1)]):
-    seshs = session.exec(select(Sesh).where(Sesh.day == date(year, month, day), Sesh.type == "programming")).all()
+    seshs = session.exec(select(Sesh).where(
+        Sesh.day == date(year, month, day), Sesh.owner_id==current_user.id, Sesh.type == "programming")).all()
     res = []
     m_name = calendar.month_name[month]
 
@@ -120,12 +126,14 @@ async def read_specific_day(session: SessionDep,
 
 
 @router.get("/by_sesh/{year}/{month}/{sesh_type}")  # i wonder about the order though
-async def read_calendar_sesh_type(session: SessionDep, sesh_type: Annotated[SeshType, Path()], year: Annotated[int, Path()],
+async def read_calendar_sesh_type(session: SessionDep, current_user: UserDep,
+                                  sesh_type: Annotated[SeshType, Path()], year: Annotated[int, Path()],
                                   month: Annotated[int, Path()]):
     m_start = date(year, month, 1)
     last_day = calendar.monthrange(year, month)[1]
     m_end = date(year, month, last_day)
-    seshs = session.exec(select(Sesh).where(Sesh.day >= m_start, Sesh.day <= m_end, Sesh.type == sesh_type)).all()
+    seshs = session.exec(select(Sesh).where(
+        Sesh.day >= m_start, Sesh.day <= m_end, Sesh.owner_id==current_user.id, Sesh.type == sesh_type)).all()
 
     res = []
 

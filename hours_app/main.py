@@ -1,16 +1,23 @@
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from fastapi import FastAPI, Depends
 from fastapi.responses import RedirectResponse
 from sqlmodel import select
+from a2wsgi import ASGIMiddleware
+import uvicorn
 
-from .routers import crud_basic, crud_detailed, calendar, users
-from .database import create_db_and_tables
-from .models import Sesh
-from .dependencies import SessionDep
+from hours_app.routers import crud_basic, crud_detailed, calendar, users
+from hours_app.database import create_db_and_tables
+from hours_app.models import Sesh
+from hours_app.dependencies import SessionDep
 
 from dark_swag import FastAPI
 
-app = FastAPI(title="hours.py upgraded")
-
+app = FastAPI(title="hours.py upgraded", swagger_ui_parameters={"persistAuthorization": True})
+application = ASGIMiddleware(app)
 
 @app.on_event("startup")
 def on_startup():
@@ -22,20 +29,10 @@ def root():
     return RedirectResponse(url="/docs_light")
 
 
-@app.get("/seshs/", tags=["crud"])
-def read_seshs(session: SessionDep):
-    seshs = session.exec(select(Sesh)).all()
-    return seshs
-
-
-
 app.include_router(crud_basic.router)
 app.include_router(crud_detailed.router)
 app.include_router(calendar.router)
 app.include_router(users.router)
 
-
-@app.get("/")
-async def root():
-    return RedirectResponse("/docs_light")
-
+if __name__ == "__main__":
+    uvicorn.run(application, host="0.0.0.0", log_level="error")

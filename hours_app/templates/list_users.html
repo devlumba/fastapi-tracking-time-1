@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block body %}
+    {% for user in users %}
+    <div style="border-style: solid; margin: 7px; padding: 5px;">
+        <div class="content-section">
+                <div class="content-section">
+                    <a href="#" class="link-underline-dark" hx-get="/specific_user/{{ user.id }}" hx-target=".target" hx-swap="innerHTML">
+                        <h1 class="task-title">{{ user.username }}</h1>
+                    </a>
+                    <hr>
+                    <pre class="h2">{{ user.full_name }}</pre>
+                    <h5>{{ user.id }}</h5>
+                </div>
+            <a class="btn btn-primary" href="#">Update</a>
+            <a class="btn btn-danger" href="#">Delete</a>
+        </div>
+    </div>
+    {% endfor %}
+{% endblock body %}

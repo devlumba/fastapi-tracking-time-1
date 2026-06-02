@@ -9,7 +9,7 @@ from fastapi.security import OAuth2, OAuth2PasswordBearer, OAuth2PasswordRequest
 from pydantic import BaseModel
 from pwdlib import PasswordHash
 from jwt.exceptions import InvalidTokenError
-from sqlmodel import select
+from sqlmodel import select as sql_select
 
 from dark_swag import FastAPI
 
@@ -20,7 +20,7 @@ from hours_app.database import Session
 
 SECRET_KEY = "f9208ed4f21b01559b9445e324694d6b7b0d48ab4bdece5364ce9cafbbb49079"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 29
+ACCESS_TOKEN_EXPIRE_MINUTES = 6000
 
 password_hash = PasswordHash.recommended()  # I assume this is me choosing HOW to hash/unhash a password
 
@@ -40,7 +40,8 @@ def get_password_hash(plain_password) -> str:
 
 
 def get_user(session: Session, username: str) -> UserInDB:
-    user = session.exec(select(UserInDB).where(UserInDB.username == username)).first()
+    print("SESSSSSSIon", session)
+    user = session.exec(sql_select(UserInDB).where(UserInDB.username == username)).first()
     if user:
         return user
     else:

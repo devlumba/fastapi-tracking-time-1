@@ -110,4 +110,3 @@ def get_stats_type(session: SessionDep, current_user: UserDep, sesh_type: SeshTy
     return {f"Quick stats for {sesh_type.name}:": result}
 
 
-

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block body %}
+
+<form action="" method="post">
+    <input placeholder="username" name="username" type="text">
+    <input placeholder="password" name="password" type="password">
+    <button hx-post="/login" hx-swap="innerHTML" hx-target="closest .target" type="submit">click</button>
+</form>
+
+{% endblock body %}

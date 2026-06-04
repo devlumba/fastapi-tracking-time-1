@@ -7,8 +7,9 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
 </head>
 <body style="background-color: skyblue;">
+<div style="display: flex;">
 <div class="target" style="background-color: skyblue;">
-    <button hx-get="/seshs/all" hx-target=".target" hx-swap="innerHTML" hx-confirm="Are you sure?">
+    <button hx-get="/seshs/all" hx-target=".target" hx-swap="innerHTML">
         view all posts
     </button>
 
@@ -30,12 +31,16 @@
     </button>
 
     {% if current_user %}
-        <button hx-get="/get-curr-user" hx-target=".target" hx-swap="innerHTML">
+    <button hx-get="/get-curr-user" hx-target=".target" hx-swap="innerHTML">
     user
     </button>
 
+    <button hx-get="/sesh-create-form" hx-target=".target" hx-swap="innerHTML">
+    create a sesh
+    </button>
+
     <a class="h4 link-underline-dark" hx-get="/specific_user/{{ current_user.id }}" hx-target=".target" hx-swap="innerHTML">{{ current_user.username }}</a>
-    <button hx-get="/logout" hx-target=".target" hx-swap="innerHTML">
+    <button hx-get="/logout" hx-target=".target" hx-swap="innerHTML" hx-confirm="Are you sure?">
     log out
     </button>
     {% endif %}
@@ -44,14 +49,24 @@
         hx-post="/search_results"
         hx-trigger="keyup changed delay:500ms"
         hx-target="#search-results"
+           hx-target=".target"
+           hx-swap="innerHTML"
         placeholder="Search...">
     <div id="search-results"></div>
+
+    </div>
+
 </div>
 
-<div style="margin: 20px; width: 50vw;">
+{% if message %}
+<h1>{{ message }}</h1>
+{% endif %}
+
+<div style="margin: 20px; width: 50vw;" class="content-section">
 {% block body %}
 {% endblock body %}
 </div>
+
 
 
 <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.10/dist/htmx.min.js"

@@ -1,3 +1,4 @@
+import datetime
 from typing import Annotated
 from datetime import timedelta
 
@@ -7,7 +8,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import select, and_, or_
 from pydantic import BaseModel
 
-from hours_app.models import Sesh, UserInDB, UserCreate, UserPublic, Token
+from hours_app.models import Sesh, UserInDB, UserCreate, UserPublic, Token, SeshCreate
 from hours_app.dependencies import SessionDep
 from hours_app.routers.users import (get_password_hash, SECRET_KEY, get_user,
                                      ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, authenticate_user)
@@ -75,9 +76,9 @@ async def base_interacting_endpoint(ctx: Annotated[HTMXContext, Depends(get_htmx
 
 @router.get("/seshs/all", summary="endpoint for htmx. I kinda should add a similar one to swagger? nah")
 async def read_all_seshs(ctx: Annotated[HTMXContext, Depends(get_htmx_context)]):
-    seshs = ctx.session.exec(select(Sesh)).all()
+    seshs = ctx.session.exec(select(Sesh).order_by(Sesh.day.desc())).all()
     context = get_template_context(ctx, {"seshs": seshs})
-    return templates.TemplateResponse(request=ctx.request, name="return.html", context=context)
+    return templates.TemplateResponse(request=ctx.request, name="list_seshs.html", context=context)
 
 
 @router.get("/register-form")
@@ -109,7 +110,29 @@ def create_user_from_form(ctx: Annotated[HTMXContext, Depends(get_htmx_context)]
     ctx.session.commit()
     ctx.session.refresh(db_user)
     user_public = UserPublic.model_validate(db_user)
-    return templates.TemplateResponse(request=ctx.request, name="specific_user.html", context={"user": user_public})  # no idea how to tweak this one. Redirect likely won't do with htmx
+
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user_public.username}, expires_delta=access_token_expires
+    )
+    context = get_template_context(ctx, {"user": user_public, "current_user": user_public})
+    template_response = templates.TemplateResponse(
+        request=ctx.request,
+        name="specific_user.html",
+        context=context
+    )
+    template_response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=False,
+        secure=False,  # should set to True in production(HTTPS)
+        samesite="lax",  # CORS stuff, lax allows between site cookie sending
+        domain="localhost",
+        max_age=60 * 60 * 24 * 7,
+        path = "/"
+    )
+
+    return template_response
 
 
 @router.get("/login-form")
@@ -117,7 +140,7 @@ async def pull_up_a_login_form(ctx: Annotated[HTMXContext, Depends(get_htmx_cont
     if ctx.current_user:
         return templates.TemplateResponse(ctx.request,
                                           name="specific_user.html",
-                                          context={"user": ctx.current_user, "current_user": ctx.current_user})
+                                          context={"user": ctx.current_user, "current_user": ctx.current_user, "message": "nuh uh"})
     return templates.TemplateResponse(request=ctx.request, name="login_form.html")
 
 
@@ -167,7 +190,7 @@ def read_users_all(ctx: Annotated[HTMXContext, Depends(get_htmx_context)]):
                                       context={"users": users_public, "current_user": ctx.current_user})
 
 
-@router.get("/specific_user/{id:int}")  # 2 issues: 1) overlaps with /users/str, 2) could be higher than register
+@router.get("/specific-user/{id:int}")  # 2 issues: 1) overlaps with /users/str, 2) could be higher than register
     # yeah i gotta merge htmx and swagger endpoints with if request.header hx and stuff, check notes for 2026-06-01
 def read_specific_user(id: int, ctx: Annotated[HTMXContext, Depends(get_htmx_context)]):
     user = ctx.session.get(UserInDB, id)
@@ -204,13 +227,166 @@ async def logout(ctx: Annotated[HTMXContext, Depends(get_htmx_context)]):
 
 
 @router.post("/search_results")
-def get_post_search_results(input: str, ctx: Annotated[HTMXContext, Depends(get_htmx_context)]):
-    if input.isdigit():
-        result = ctx.session.exec(select(Sesh).where(or_(Sesh.length == int(str)), or_(Sesh.specifics.contains(input)))).all()
+def get_post_search_results(q: Annotated[str, Form()], ctx: Annotated[HTMXContext, Depends(get_htmx_context)]):
+    if q.isdigit():
+        result = ctx.session.exec(select(Sesh).where(or_(Sesh.length == int(q)))).all()
+        result += ctx.session.exec(select(Sesh).where(Sesh.specifics.contains(q)))
         context = get_template_context(ctx, {"objects": result})
-        return templates.TemplateResponse(ctx.request, name="search_result.html", context=context)
+        if not result:
+            context = get_template_context(ctx, {"message": "Nothing has been found"})
+            return templates.TemplateResponse(ctx.request, name="return_message.html", context=context)
+        return templates.TemplateResponse(ctx.request, name="search_results.html", context=context)
 
-    result = ctx.session.exec(select(Sesh).where(Sesh.specifics.contains(input))).all()
+    result = ctx.session.exec(select(Sesh).where(Sesh.specifics.contains(q))).all()
     context = get_template_context(ctx, {"objects": result})
-    return templates.TemplateResponse(ctx.request, name="search_result.html", context=context)
+    if not result:
+        context = get_template_context(ctx, {"message": "Nothing has been found"})
+        return templates.TemplateResponse(ctx.request, name="return_message.html", context=context)
+    return templates.TemplateResponse(ctx.request, name="search_results.html", context=context)
+
+
+@router.get("/sesh-create-form")
+async def create_sesh_form(ctx: Annotated[HTMXContext, Depends(get_htmx_context)]):
+    if not ctx.current_user:
+        return templates.TemplateResponse(ctx.request,
+                                          name="login-form.html",
+                                          context={"message": "You gotta log into your account first"})
+    return templates.TemplateResponse(request=ctx.request,
+                                      name="sesh_form.html", context={"current_user": ctx.current_user})
+
+
+@router.post("/sesh-create")  # not async cause db session
+def create_sesh_from_form(ctx: Annotated[HTMXContext, Depends(get_htmx_context)], sesh_length: Annotated[int, Form()],
+        sesh_desc: Annotated[str | None, Form()] = None,  sesh_type: Annotated[str, Form()] = "programming",
+        sesh_day: Annotated[datetime.date, Form()] = datetime.date.today):
+    if not ctx.current_user:
+        return templates.TemplateResponse(
+            request=ctx.request, name="login_form.html",
+            context={"message": "You must be logged in in order to create a sesh"})
+    sesh = Sesh(length=sesh_length, specifics=sesh_desc, day=sesh_day, type=sesh_type, owner_id=ctx.current_user.id)
+    print(sesh)
+
+    ctx.session.add(sesh)
+    ctx.session.commit()
+    ctx.session.refresh(sesh)
+    return templates.TemplateResponse(
+        request=ctx.request, name="specific_sesh.html", context={"sesh": sesh, "current_user": ctx.current_user})
+
+
+@router.delete("/sesh-delete/{id}")
+def delete_sesh_htmx(id: int, ctx: Annotated[HTMXContext, Depends(get_htmx_context)]):
+    sesh = ctx.session.get(Sesh, id)
+    if sesh.owner_id != ctx.current_user.id:
+        return templates.TemplateResponse(ctx.request, name="base.html", context={"current_user": ctx.current_user,
+                                                                              "message": "ur not the owner of the post"})
+    ctx.session.delete(sesh)
+    ctx.session.commit()
+    return templates.TemplateResponse(ctx.request, name="base.html", context={"current_user": ctx.current_user,
+                                                                              "message": "Deleted successfully"})
+
+
+@router.get("/sesh-update-form/{id}")
+async def update_sesh_form(ctx: Annotated[HTMXContext, Depends(get_htmx_context)], id: int):
+    sesh = ctx.session.get(Sesh, id)
+    if sesh.owner_id != ctx.current_user.id:
+        return templates.TemplateResponse(ctx.request, name="base.html", context={"current_user": ctx.current_user,
+                                                                              "message": "ur not the owner of the post"})
+    return templates.TemplateResponse(request=ctx.request,
+                                      name="sesh_update_form.html", context={"current_user": ctx.current_user, "sesh": sesh})
+
+
+@router.post("/sesh-update/{id}")  # not async cause db session
+def update_sesh_from_form(id: int,
+        ctx: Annotated[HTMXContext, Depends(get_htmx_context)], sesh_length: Annotated[int, Form()],
+        sesh_desc: Annotated[str | None, Form()] = None,  sesh_type: Annotated[str, Form()] = "programming",
+        sesh_day: Annotated[datetime.date, Form()] = datetime.date.today):
+    sesh = ctx.session.get(Sesh, id)
+    sesh.sqlmodel_update({"length": sesh_length, "specifics": sesh_desc, "day": sesh_day, "type":sesh_type})
+    ctx.session.add(sesh)
+    ctx.session.commit()
+    ctx.session.refresh(sesh)
+    return templates.TemplateResponse(
+        request=ctx.request, name="specific_sesh.html", context={"sesh": sesh, "current_user": ctx.current_user})
+
+
+@router.delete("/user-delete/{id}")
+def delete_user_htmx(id: int, ctx: Annotated[HTMXContext, Depends(get_htmx_context)]):
+    user = ctx.session.get(UserInDB, id)
+    if user.id != ctx.current_user.id:
+        return templates.TemplateResponse(ctx.request, name="base.html", context={"current_user": ctx.current_user,
+                                                                                  "message": "ur not the owner of the account"})
+    ctx.session.delete(user)
+    ctx.session.commit()
+
+
+    template_response = templates.TemplateResponse(
+        request=ctx.request,
+        name="return_message.html",
+        context={"message": "Account Deleted Successfully"}
+    )
+    template_response.set_cookie(
+        key="access_token",
+        value="",
+        httponly=False,
+        secure=False,  # should set to True in production(HTTPS)
+        samesite="lax",  # CORS stuff, lax allows between site cookie sending
+        domain="localhost",
+        max_age=0,
+        path="/"
+    )
+
+    return template_response
+
+
+@router.get("/user-update-form/{id}")
+async def update_user_form(ctx: Annotated[HTMXContext, Depends(get_htmx_context)], id: int):
+    user = ctx.session.get(UserInDB, id)
+    if user.id != ctx.current_user.id:
+        return templates.TemplateResponse(ctx.request, name="base.html", context={"current_user": ctx.current_user,
+                                                                              "message": "ur not the owner of the account"})
+    return templates.TemplateResponse(request=ctx.request,
+                                      name="user_update_form.html", context={"current_user": ctx.current_user, "user": user})
+
+
+@router.post("/user-update/{id}")  # not async cause db session
+def update_user_from_form(id: int,
+        ctx: Annotated[HTMXContext, Depends(get_htmx_context)], username: Annotated[str, Form()],
+        full_name: Annotated[str | None, Form()] = None):
+    print(username, full_name)
+    user = ctx.session.get(UserInDB, id)
+    user.sqlmodel_update({"username": username, "full_name": full_name})
+    ctx.session.add(user)
+    ctx.session.commit()
+    ctx.session.refresh(user)
+
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+    context = get_template_context(ctx, {"user": user, "current_user": user})
+    template_response = templates.TemplateResponse(
+        request=ctx.request,
+        name="specific_user.html",
+        context=context
+    )
+    template_response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=False,
+        secure=False,  # should set to True in production(HTTPS)
+        samesite="lax",  # CORS stuff, lax allows between site cookie sending
+        domain="localhost",
+        max_age=60 * 60 * 24 * 7,
+        path = "/"
+    )
+
+    return template_response
+
+
+@router.get("/specific-sesh/{id}")
+def read_specific_post(id: int, ctx: Annotated[HTMXContext, Depends(get_htmx_context)]):
+    sesh = ctx.session.get(Sesh, id)
+    context = get_template_context(ctx, {"sesh": sesh})
+    return templates.TemplateResponse(ctx.request, name="specific_sesh.html", context=context)
+
 

@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block body %}
+    {% for sesh in seshs %}
+    {% include "specific_sesh_raw.html" %}
+    {% endfor %}
+{% endblock body %}

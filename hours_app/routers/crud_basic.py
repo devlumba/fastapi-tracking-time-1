@@ -24,7 +24,7 @@ def create_seshs(session: SessionDep, current_user: Annotated[UserInDB, Depends(
                  sesh_length: int, sub_tag_one: str = None, sub_tag_two: str = None,
                  sesh_desc: str = None,  # i COULD add annotation with restrictions here # todoooooooooooooooo
                  sesh_type: SeshType = "programming",
-                 sesh_day: date = date.today(),):
+                 sesh_day: date = date.today()):
     db_sesh = Sesh(length=sesh_length, specifics=sesh_desc, day=sesh_day, type=sesh_type, owner_id=current_user.id,
                    sub_tag_one=sub_tag_one, sub_tag_two=sub_tag_two)
     # db_sesh = Sesh.model_validate(sesh)

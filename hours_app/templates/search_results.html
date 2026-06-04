@@ -1,11 +1,9 @@
-{% extends "base.html" %}
-{% block body %}
-    {% for sesh in objects %}
-    <div style="border-style: dotted; margin: 2px;">
-    <p>{{ sesh.type.name }}</p>
-    <h1>{{ sesh.length }} minutes</h1>
-    <h2>{{ sesh.specifics }} <small>{{ sesh.day }}</small></h2>
-    </div>
-    {% endfor %}
 
-{% endblock body %}
+{% for sesh in objects %}
+<div style="border-style: dotted; margin: 15px;">
+<p>{{ sesh.type.name }}</p>
+<h1>{{ sesh.length }} minutes</h1>
+<h2>{{ sesh.specifics }} <small>{{ sesh.day }}</small></h2>
+</div>
+{% endfor %}
+

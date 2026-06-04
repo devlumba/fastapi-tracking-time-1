@@ -1,0 +1,29 @@
+<div class="content-section" style="height: 260px;">
+<form action="" method="post">
+  <div class="mb-3">
+    <label for="inputLength" class="form-label">Length of the Sesh</label>
+    <input type="text" class="form-control" id="inputLength">
+  </div>
+    <div class="mb-3">
+    <label for="inputType" class="form-label">Sesh Type</label>
+      <input id="inputType" class="form-control" placeholder="sesh_type" name="sesh_type" type="text" list="seshtypename">
+      <datalist id="seshtypename">
+        <option value="programming">
+        <option value="duolingo">
+        <option value="juggling">
+        <option value="words">
+        <option value="reading">
+    </datalist>
+    </div>
+    <div class="mb-3">
+    <label for="inputDesc" class="form-label">Sesh Description</label>
+    <input type="text" class="form-control" id="inputDesc">
+    </div>
+    <div class="mb-3">
+    <label class="form-check-label" for="inputDay">Sesh Date</label>
+    <input type="date" class="form-date" id="inputDay">
+    </div>
+    <button class="btn btn-primary" hx-post="/sesh-create" hx-swap="innerHTML" hx-target="closest .target" type="submit">click</button>
+
+</form>
+</div>

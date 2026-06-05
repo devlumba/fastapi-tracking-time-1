@@ -13,6 +13,7 @@ from hours_app.dependencies import SessionDep
 from hours_app.routers.users import (get_password_hash, SECRET_KEY, get_user,
                                      ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, authenticate_user)
 from hours_app.security import get_current_user_or_none, token_decode
+from hours_app.config import settings
 
 
 router = APIRouter(tags=["interactions"])
@@ -74,9 +75,9 @@ async def base_interacting_endpoint(ctx: Annotated[HTMXContext, Depends(get_htmx
     return templates.TemplateResponse(request=ctx.request, name="base.html", context=context)
 
 
-@router.get("/seshs/all", summary="endpoint for htmx. I kinda should add a similar one to swagger? nah")
+@router.get("/seshs/all", summary="htmx read YOUR seshs")
 async def read_all_seshs(ctx: Annotated[HTMXContext, Depends(get_htmx_context)]):
-    seshs = ctx.session.exec(select(Sesh).order_by(Sesh.day.desc())).all()
+    seshs = ctx.session.exec(select(Sesh).where(Sesh.owner_id==ctx.current_user.id).order_by(Sesh.day.desc())).all()
     context = get_template_context(ctx, {"seshs": seshs})
     return templates.TemplateResponse(request=ctx.request, name="list_seshs.html", context=context)
 
@@ -124,10 +125,10 @@ def create_user_from_form(ctx: Annotated[HTMXContext, Depends(get_htmx_context)]
     template_response.set_cookie(
         key="access_token",
         value=access_token,
-        httponly=False,
-        secure=False,  # should set to True in production(HTTPS)
+        httponly=settings.COOKIE_HTTPONLY,
+        secure=settings.COOKIE_SECURE,  # should set to True in production(HTTPS)
         samesite="lax",  # CORS stuff, lax allows between site cookie sending
-        domain="localhost",
+        domain=settings.COOKIE_DOMAIN,
         max_age=60 * 60 * 24 * 7,
         path = "/"
     )
@@ -169,10 +170,10 @@ async def login_htmx(
     template_response.set_cookie(
         key="access_token",
         value=access_token,
-        httponly=False,
-        secure=False,  # should set to True in production(HTTPS)
+        httponly=settings.COOKIE_HTTPONLY,
+        secure=settings.COOKIE_SECURE,  # should set to True in production(HTTPS)
         samesite="lax",  # CORS stuff, lax allows between site cookie sending
-        domain="localhost",
+        domain=settings.COOKIE_DOMAIN,
         max_age=60 * 60 * 24 * 7,
         path = "/"
     )
@@ -215,12 +216,12 @@ async def logout(ctx: Annotated[HTMXContext, Depends(get_htmx_context)]):
     template_response.set_cookie(
         key="access_token",
         value="",
-        httponly=False,
-        secure=False,  # should set to True in production(HTTPS)
+        httponly=settings.COOKIE_HTTPONLY,
+        secure=settings.COOKIE_SECURE,  # should set to True in production(HTTPS)
         samesite="lax",  # CORS stuff, lax allows between site cookie sending
-        domain="localhost",
+        domain=settings.COOKIE_DOMAIN,
         max_age=0,
-        path="/"
+        path = "/"
     )
 
     return template_response
@@ -327,12 +328,12 @@ def delete_user_htmx(id: int, ctx: Annotated[HTMXContext, Depends(get_htmx_conte
     template_response.set_cookie(
         key="access_token",
         value="",
-        httponly=False,
-        secure=False,  # should set to True in production(HTTPS)
+        httponly=settings.COOKIE_HTTPONLY,
+        secure=settings.COOKIE_SECURE,  # should set to True in production(HTTPS)
         samesite="lax",  # CORS stuff, lax allows between site cookie sending
-        domain="localhost",
+        domain=settings.COOKIE_DOMAIN,
         max_age=0,
-        path="/"
+        path = "/"
     )
 
     return template_response
@@ -372,10 +373,10 @@ def update_user_from_form(id: int,
     template_response.set_cookie(
         key="access_token",
         value=access_token,
-        httponly=False,
-        secure=False,  # should set to True in production(HTTPS)
+        httponly=settings.COOKIE_HTTPONLY,
+        secure=settings.COOKIE_SECURE,  # should set to True in production(HTTPS)
         samesite="lax",  # CORS stuff, lax allows between site cookie sending
-        domain="localhost",
+        domain=settings.COOKIE_DOMAIN,
         max_age=60 * 60 * 24 * 7,
         path = "/"
     )

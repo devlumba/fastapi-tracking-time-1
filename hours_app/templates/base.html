@@ -9,9 +9,11 @@
 <body style="background-color: skyblue;">
 <div style="display: flex;">
 <div class="target" style="background-color: skyblue;">
+    {% if current_user %}
     <button hx-get="/seshs/all" hx-target=".target" hx-swap="innerHTML">
-        view all posts
+        view YOUR posts
     </button>
+    {% endif %}
 
     <button hx-get="/users-all" hx-target=".target" hx-swap="innerHTML">
         view all users

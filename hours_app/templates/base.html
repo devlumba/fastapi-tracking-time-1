@@ -45,16 +45,15 @@
     <button hx-get="/logout" hx-target=".target" hx-swap="innerHTML" hx-confirm="Are you sure?">
     log out
     </button>
-    {% endif %}
-
     <input type="search" name="q"
-        hx-post="/search_results"
-        hx-trigger="keyup changed delay:500ms"
-        hx-target="#search-results"
-           hx-target=".target"
-           hx-swap="innerHTML"
-        placeholder="Search...">
+    hx-post="/search_results"
+    hx-trigger="keyup changed delay:500ms"
+    hx-target="#search-results"
+       hx-target=".target"
+       hx-swap="innerHTML"
+    placeholder="Search...">
     <div id="search-results"></div>
+    {% endif %}
 
     </div>
 

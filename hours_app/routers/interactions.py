@@ -16,7 +16,7 @@ from hours_app.security import get_current_user_or_none, token_decode
 from hours_app.config import settings
 
 
-router = APIRouter(tags=["interactions"])
+router = APIRouter(tags=["interactions(HTMX SPA)"])
 
 from hours_app.templates import templates
 
@@ -230,15 +230,15 @@ async def logout(ctx: Annotated[HTMXContext, Depends(get_htmx_context)]):
 @router.post("/search_results")
 def get_post_search_results(q: Annotated[str, Form()], ctx: Annotated[HTMXContext, Depends(get_htmx_context)]):
     if q.isdigit():
-        result = ctx.session.exec(select(Sesh).where(or_(Sesh.length == int(q)))).all()
-        result += ctx.session.exec(select(Sesh).where(Sesh.specifics.contains(q)))
+        result = ctx.session.exec(select(Sesh).where(Sesh.length == int(q), Sesh.owner_id==ctx.current_user.id)).all()
+        result += ctx.session.exec(select(Sesh).where(Sesh.specifics.contains(q), Sesh.owner_id==ctx.current_user.id))
         context = get_template_context(ctx, {"objects": result})
         if not result:
             context = get_template_context(ctx, {"message": "Nothing has been found"})
             return templates.TemplateResponse(ctx.request, name="return_message.html", context=context)
         return templates.TemplateResponse(ctx.request, name="search_results.html", context=context)
 
-    result = ctx.session.exec(select(Sesh).where(Sesh.specifics.contains(q))).all()
+    result = ctx.session.exec(select(Sesh).where(Sesh.specifics.contains(q), Sesh.owner_id==ctx.current_user.id)).all()
     context = get_template_context(ctx, {"objects": result})
     if not result:
         context = get_template_context(ctx, {"message": "Nothing has been found"})

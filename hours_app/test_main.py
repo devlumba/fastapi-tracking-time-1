@@ -5,4 +5,4 @@ from fastapi.testclient import TestClient
 
 from hours_app.main import app
 
-
+client = TestClient(app)

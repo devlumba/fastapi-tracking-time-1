@@ -2,7 +2,7 @@ from datetime import date, timedelta
 from typing import Annotated
 
 from fastapi import FastAPI, Depends, Path, Query, Body, APIRouter
-from sqlmodel import Session, SQLModel, create_engine, Field, select, func
+from sqlmodel import Session, SQLModel, create_engine, Field, select, func, desc
 from starlette.exceptions import HTTPException
 
 from hours_app.dependencies import SessionDep, oauth2_scheme
@@ -15,7 +15,7 @@ router = APIRouter(tags=["crud"], dependencies=[Depends(oauth2_scheme)], prefix=
 
 @router.get("/", summary="Read Seshs, clearly your own", dependencies=[Depends(oauth2_scheme)])
 def read_seshs(session: SessionDep, current_user: Annotated[UserInDB, Depends(get_current_user)]):
-    seshs = session.exec(select(Sesh).where(Sesh.owner_id == current_user.id)).all()
+    seshs = session.exec(select(Sesh).where(Sesh.owner_id == current_user.id).order_by(desc(Sesh.day))).all()
     return seshs
 
 

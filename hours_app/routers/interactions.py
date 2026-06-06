@@ -150,7 +150,7 @@ async def login_htmx(
         ctx: Annotated[HTMXContext, Depends(get_htmx_context)],
         form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> Token:  # depends on the type/class itself, i could put OAuth...Form in the parentheses of Depends
 
-    print("logged in", form_data.username, form_data.password)
+    # print("logged in", form_data.username, form_data.password)
     user = authenticate_user(ctx.session, username=form_data.username, password=form_data.password)
     if not user:  # this probably could be more explicit and understandable
         raise HTTPException(status_code=401, detail="Incorrect Username or Password",
@@ -160,7 +160,7 @@ async def login_htmx(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
     ready_token = Token(access_token=access_token, token_type="bearer")  # for potential headers
-    print(user)
+    # print(user)
     context = get_template_context(ctx, {"user": user, "current_user": user})
     template_response = templates.TemplateResponse(
         request=ctx.request,
@@ -202,7 +202,7 @@ def read_specific_user(id: int, ctx: Annotated[HTMXContext, Depends(get_htmx_con
 @router.get("/get-curr-user")
 def read_curr_user_htmx(ctx: Annotated[HTMXContext, Depends(get_htmx_context)]):
     user = get_current_user_or_none(ctx.session, ctx.request)
-    print(user)
+    # print(user)
     return templates.TemplateResponse(ctx.request, name="specific_user.html", context={"user": user, "current_user": ctx.current_user})
 
 

@@ -9,16 +9,16 @@
 <body style="background-color: skyblue;">
 <div style="display: flex;">
 <div class="target" style="background-color: skyblue;">
-    {% if current_user %}
-    <button hx-get="/seshs/all" hx-target=".target" hx-swap="innerHTML">
-        view YOUR posts
-    </button>
-    {% endif %}
 
     <button hx-get="/users-all" hx-target=".target" hx-swap="innerHTML">
         view all users
     </button>
 
+    {% if current_user %}
+    <button hx-get="/seshs/all" hx-target=".target" hx-swap="innerHTML">
+        view YOUR posts
+    </button>
+    {% else %}
 
     <button hx-get="/register-form" hx-target=".target" hx-swap="innerHTML">
     i pull up(register)
@@ -27,6 +27,8 @@
     <button hx-get="/login-form" hx-target=".target" hx-swap="innerHTML">
     login
     </button>
+
+    {% endif %}
 
     <button hx-get="" hx-target=".target" hx-swap="innerHTML">
     delete all
@@ -41,7 +43,7 @@
     create a sesh
     </button>
 
-    <a class="h4 link-underline-dark" hx-get="/specific_user/{{ current_user.id }}" hx-target=".target" hx-swap="innerHTML">{{ current_user.username }}</a>
+    <a class="h4 link-underline-dark" hx-get="/specific-user/{{ current_user.id }}" hx-target=".target" hx-swap="innerHTML">{{ current_user.username }}</a>
     <button hx-get="/logout" hx-target=".target" hx-swap="innerHTML" hx-confirm="Are you sure?">
     log out
     </button>

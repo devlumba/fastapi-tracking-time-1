@@ -40,7 +40,7 @@ def get_password_hash(plain_password) -> str:
 
 
 def get_user(session: Session, username: str) -> UserInDB:
-    print("SESSSSSSIon", session)
+    # print("SESSSSSSIon", session)
     user = session.exec(sql_select(UserInDB).where(UserInDB.username == username)).first()
     if user:
         return user

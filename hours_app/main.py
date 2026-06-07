@@ -21,7 +21,6 @@ from hours_app.database import create_db_and_tables
 from hours_app.models import Sesh
 from hours_app.dependencies import SessionDep
 
-# from dark_swag import FastAPI
 
 app = FastAPI(title="hours.py upgraded", swagger_ui_parameters={"persistAuthorization": True}, version="0.4")
 application = ASGIMiddleware(app)

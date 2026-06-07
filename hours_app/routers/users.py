@@ -11,8 +11,6 @@ from pwdlib import PasswordHash
 from jwt.exceptions import InvalidTokenError
 from sqlmodel import select as sql_select
 
-from dark_swag import FastAPI
-
 from hours_app.dependencies import SessionDep, oauth2_scheme
 from hours_app.models import Sesh, UserInDB, Token, TokenData, UserBase, UserCreate, UserPublic
 from hours_app.database import Session

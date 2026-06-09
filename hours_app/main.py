@@ -39,12 +39,12 @@ app.mount("/static", StaticFiles(directory="hours_app/static"), name="static")
 #     allow_headers=["*"],
 # )
 
-# logger = logging.getLogger(__name__)
-#
-# logging.basicConfig(
-#     level=logging.INFO,
-#     format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-# )
+logger = logging.getLogger(__name__)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+)
 
 
 @app.middleware("http")

@@ -12,6 +12,7 @@ from fastapi.templating import Jinja2Templates
 from sqlmodel import select
 from a2wsgi import ASGIMiddleware
 import uvicorn
+import psycopg2  # for postgresql
 
 from starlette.middleware.cors import CORSMiddleware
 
@@ -38,12 +39,12 @@ app.mount("/static", StaticFiles(directory="hours_app/static"), name="static")
 #     allow_headers=["*"],
 # )
 
-logger = logging.getLogger(__name__)
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-)
+# logger = logging.getLogger(__name__)
+#
+# logging.basicConfig(
+#     level=logging.INFO,
+#     format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+# )
 
 
 @app.middleware("http")
@@ -51,7 +52,7 @@ async def log_requests(request: Request, call_next):
     start_time = time.perf_counter()
     response = await call_next(request)
     response_time = time.perf_counter() - start_time
-    logger.info(f"{request.method} {request.url.path} {response.status_code} {response_time:.3f}s OHAYO SEKAI GOODMORNING WOOOOORLD")
+    # logger.info(f"{request.method} {request.url.path} {response.status_code} {response_time:.3f}s OHAYO SEKAI GOODMORNING WOOOOORLD")
     return response
 
 
@@ -62,8 +63,13 @@ def on_startup():
 
 @app.get("/")
 def root():
-    logger.info("rooooooot")
+    # logger.info("rooooooot")
     return RedirectResponse(url="/docs")
+
+
+@app.get("/test-msg")
+def test_msg():
+    return {"msg": "heya"}
 
 
 app.include_router(crud_basic.router)

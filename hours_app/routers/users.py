@@ -9,7 +9,7 @@ from fastapi.security import OAuth2, OAuth2PasswordBearer, OAuth2PasswordRequest
 from pydantic import BaseModel
 from pwdlib import PasswordHash
 from jwt.exceptions import InvalidTokenError
-from sqlmodel import select as sql_select
+from sqlmodel import select
 
 from hours_app.dependencies import SessionDep, oauth2_scheme
 from hours_app.models import Sesh, UserInDB, Token, TokenData, UserBase, UserCreate, UserPublic
@@ -39,7 +39,7 @@ def get_password_hash(plain_password) -> str:
 
 def get_user(session: Session, username: str) -> UserInDB:
     # print("SESSSSSSIon", session)
-    user = session.exec(sql_select(UserInDB).where(UserInDB.username == username)).first()
+    user = session.exec(select(UserInDB).where(UserInDB.username == username)).first()
     if user:
         return user
     else:

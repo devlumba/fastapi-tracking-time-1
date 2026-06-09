@@ -1,13 +1,9 @@
 from sqlmodel import Session, create_engine, SQLModel
 
-# THIS FILE SHOULD NOT IMPORT FROM DEPENDENCIES at the top, at least? cuz at the top of dependencies.py there's an import
-# from database.py
+from hours_app.config import settings
 
-sqlite_file_name = "database.db"
-sqlite_url = f"sqlite:///{sqlite_file_name}"
 
-connect_args = {"check_same_thread": False}
-engine = create_engine(sqlite_url, connect_args=connect_args)
+engine = create_engine(settings.SQLALCHEMY_DATABASE_URL, echo=True)
 
 
 def get_session():

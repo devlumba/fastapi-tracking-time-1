@@ -23,7 +23,7 @@ def read_seshs(session: SessionDep, current_user: Annotated[UserInDB, Depends(ge
 def create_seshs(session: SessionDep, current_user: Annotated[UserInDB, Depends(get_current_user)],
                  sesh_length: int, sub_tag_one: str = None, sub_tag_two: str = None,
                  sesh_desc: str = None,  # i COULD add annotation with restrictions here # todoooooooooooooooo
-                 sesh_type: SeshType = "programming",
+                 sesh_type: str = "programming",
                  sesh_day: date = date.today()):
     db_sesh = Sesh(length=sesh_length, specifics=sesh_desc, day=sesh_day, type=sesh_type, owner_id=current_user.id,
                    sub_tag_one=sub_tag_one, sub_tag_two=sub_tag_two)
@@ -48,7 +48,7 @@ def delete_seshs(session: SessionDep, sesh_id: int, current_user: Annotated[User
     return {"msg": "fuck off aye"}
 
 
-@router.put("/")
+@router.put("/{sesh_id}")
 def update_sesh(session: SessionDep, sesh: SeshUpdate,
                 sesh_id: int, current_user: Annotated[UserInDB, Depends(get_current_user)]):
     db_sesh = session.get(Sesh, sesh_id)
@@ -64,4 +64,15 @@ def update_sesh(session: SessionDep, sesh: SeshUpdate,
     session.refresh(db_sesh)
     return db_sesh
 
+
+@router.get("/{sesh_id}")
+def read_specific_sesh(session: SessionDep,
+                sesh_id: int, current_user: Annotated[UserInDB, Depends(get_current_user)]):
+    sesh = session.get(Sesh, sesh_id)
+    if not sesh:
+        raise HTTPException(status_code=404, detail="nope mate")
+    if sesh.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not Your Sesh")
+
+    return sesh
 

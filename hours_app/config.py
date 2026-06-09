@@ -2,6 +2,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
+    SQLALCHEMY_DATABASE_URL: str
 
     @property
     def COOKIE_DOMAIN(self) -> str:

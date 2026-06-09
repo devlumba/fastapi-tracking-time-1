@@ -54,7 +54,7 @@ class SeshBase(SQLModel):
 class Sesh(SeshBase, table=True):  # == SeshInDB
     __tablename__ = "sesh_table"
     id: int | None = Field(default=None, primary_key=True)
-    type: SeshType | None = Field(index=True, default=None)  # this can be in the SeshBase?
+    type: str | None = Field(index=True, default=None)  # this can be in the SeshBase? yeah if it's just a string
     owner_id: int | None = Field(default=None, foreign_key="user_table.id")
 
 
@@ -67,7 +67,6 @@ class SeshCreate(SeshBase):
 
 
 class SeshUpdate(SeshBase):
-    length: int | None = None
-    specifics: str | None = None
-    day: date | None = None
-    type: SeshType | None = None
+    sesh_length: int | None = None
+    sesh_specifics: str | None = None
+    sesh_type: str | None = None

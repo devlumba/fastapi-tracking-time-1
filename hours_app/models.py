@@ -46,8 +46,6 @@ class SeshBase(SQLModel):
     length: int | None = Field(default=None, index=True)
     specifics: str | None = Field(default=None)
     day: date = Field(index=True, default_factory=date.today)
-    sub_tag_one: str | None = Field(index=True, default=None)
-    sub_tag_two: str | None = Field(index=True, default=None)
 
 
 
@@ -62,8 +60,6 @@ class SeshCreate(SeshBase):
     length: int | None = Query(default=None)
     specifics: str | None = Query(default=None)
     day: date = Query()
-    sub_tag_one: str | None = Query(default=None)
-    sub_tag_two: str | None = Query(default=None)
 
 
 class SeshUpdate(SeshBase):

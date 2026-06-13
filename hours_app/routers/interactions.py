@@ -75,7 +75,7 @@ async def base_interacting_endpoint(ctx: Annotated[HTMXContext, Depends(get_htmx
     return templates.TemplateResponse(request=ctx.request, name="base.html", context=context)
 
 
-@router.get("/seshs/all", summary="htmx read YOUR seshs")
+@router.get("/seshs-all-htmx", summary="htmx read YOUR seshs")
 async def read_all_seshs(ctx: Annotated[HTMXContext, Depends(get_htmx_context)]):
     seshs = ctx.session.exec(select(Sesh).where(Sesh.owner_id==ctx.current_user.id).order_by(Sesh.day.desc())).all()
     context = get_template_context(ctx, {"seshs": seshs})
@@ -161,11 +161,12 @@ async def login_htmx(
     )
     ready_token = Token(access_token=access_token, token_type="bearer")  # for potential headers
     # print(user)
-    context = get_template_context(ctx, {"user": user, "current_user": user})
+    context = get_template_context(ctx, {"user": user, "current_user": user, "token": access_token})
     template_response = templates.TemplateResponse(
         request=ctx.request,
         name="specific_user.html",
-        context=context
+        context=context,
+        headers={"Authorization": f"Bearer {access_token}"}
     )
     template_response.set_cookie(
         key="access_token",

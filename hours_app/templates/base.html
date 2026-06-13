@@ -15,7 +15,7 @@
     </button>
 
     {% if current_user %}
-    <button hx-get="/seshs/all" hx-target=".target" hx-swap="innerHTML">
+    <button hx-get="/seshs-all-htmx" hx-target=".target" hx-swap="innerHTML">
         view YOUR posts
     </button>
     {% else %}
@@ -33,6 +33,12 @@
     <button hx-get="" hx-target=".target" hx-swap="innerHTML">
     delete all
     </button>
+
+    {% if token %}
+    <button hx-get="/seshs" hx-target=".target" hx-swap="innerHTML" hx-headers="{'Authorization': 'Bearer {{ token }}'}">
+    2
+    </button>
+    {% endif %}
 
     {% if current_user %}
     <button hx-get="/get-curr-user" hx-target=".target" hx-swap="innerHTML">

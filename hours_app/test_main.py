@@ -109,3 +109,5 @@ def test_delete_sesh_404():
                              headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 404
 
+
+

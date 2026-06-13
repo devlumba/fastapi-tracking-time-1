@@ -8,15 +8,23 @@ from starlette.exceptions import HTTPException
 from hours_app.dependencies import SessionDep, oauth2_scheme
 from hours_app.models import Sesh, SeshType, SeshCreate, SeshBase, SeshUpdate, UserInDB
 from hours_app.routers.users import get_current_user
+from hours_app.routers.interactions import get_htmx_context, get_template_context
+from hours_app.routers.interactions import HTMXContext, get_htmx_context
+from hours_app.templates import templates
 
 
 router = APIRouter(tags=["crud"], dependencies=[Depends(oauth2_scheme)], prefix="/seshs")
 
 
 @router.get("/", summary="Read Seshs, clearly your own", dependencies=[Depends(oauth2_scheme)])
-def read_seshs(session: SessionDep, current_user: Annotated[UserInDB, Depends(get_current_user)]):
-    seshs = session.exec(select(Sesh).where(Sesh.owner_id == current_user.id).order_by(desc(Sesh.day))).all()
+def read_seshs(session: SessionDep, ctx: Annotated[HTMXContext, Depends(get_htmx_context)]):
+    htmx_header = ctx.request.headers.get("HX-Request") == "true"
+    if htmx_header:
+        context = get_template_context(ctx, {"seshs": seshs})
+        return templates.TemplateResponse(request=ctx.request, name="list_seshs.html", context=context)
+    seshs = ctx.session.exec(select(Sesh).where(Sesh.owner_id==ctx.current_user.id).order_by(Sesh.day.desc())).all()
     return seshs
+
 
 
 @router.post("/")

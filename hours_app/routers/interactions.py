@@ -9,31 +9,16 @@ from sqlmodel import select, and_, or_
 from pydantic import BaseModel
 
 from hours_app.models import Sesh, UserInDB, UserCreate, UserPublic, Token, SeshCreate
-from hours_app.dependencies import SessionDep
+from hours_app.dependencies import SessionDep, get_template_context, get_htmx_context, HTMXContext, get_current_user_or_none
 from hours_app.routers.users import (get_password_hash, SECRET_KEY, get_user,
                                      ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, authenticate_user)
-from hours_app.security import get_current_user_or_none, token_decode
+from hours_app.security import token_decode
 from hours_app.config import settings
 
 
 router = APIRouter(tags=["interactions(HTMX SPA)"])
 
 from hours_app.templates import templates
-
-
-class HTMXContext(BaseModel):
-    request: Request
-    session: SessionDep
-    current_user: UserInDB | None = None
-
-    class Config:
-        arbitrary_types_allowed = True
-
-
-async def get_htmx_context(request: Request, session: SessionDep,
-                           current_user: Annotated[(UserInDB, Depends(get_current_user_or_none))]):
-    ctx = HTMXContext(request=request, session=session, current_user=current_user)
-    return ctx
 
 
 def get_access_token(request: Request, session: SessionDep, *args):  # == get user from token
@@ -54,16 +39,6 @@ def get_access_token(request: Request, session: SessionDep, *args):  # == get us
 
     if current_user:
         context["current_user"] = current_user
-
-    context.update(*args)
-    return context
-
-
-def get_template_context(ctx: Annotated[HTMXContext, Depends(get_htmx_context)], *args):
-    context = {}
-
-    if ctx.current_user:
-        context["current_user"] = ctx.current_user
 
     context.update(*args)
     return context
@@ -266,13 +241,11 @@ def create_sesh_from_form(ctx: Annotated[HTMXContext, Depends(get_htmx_context)]
             request=ctx.request, name="login_form.html",
             context={"message": "You must be logged in in order to create a sesh"})
     sesh = Sesh(length=sesh_length, specifics=sesh_desc, day=sesh_day, type=sesh_type, owner_id=ctx.current_user.id)
-    print(sesh)
-
     ctx.session.add(sesh)
     ctx.session.commit()
     ctx.session.refresh(sesh)
     return templates.TemplateResponse(
-        request=ctx.request, name="specific_sesh.html", context={"sesh": sesh, "current_user": ctx.current_user})
+        request=ctx.request, name="specific_sesh_raw.html", context={"sesh": sesh, "current_user": ctx.current_user})
 
 
 @router.delete("/sesh-delete/{id}")

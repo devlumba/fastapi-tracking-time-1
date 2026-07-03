@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 import jwt
-from fastapi import FastAPI, Depends, APIRouter, Query
+from fastapi import FastAPI, Depends, APIRouter, Query, Form
 from fastapi.responses import RedirectResponse
 from fastapi.exceptions import HTTPException
 from fastapi.security import OAuth2, OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -11,13 +11,13 @@ from pwdlib import PasswordHash
 from jwt.exceptions import InvalidTokenError
 from sqlmodel import select
 
-from hours_app.dependencies import SessionDep, oauth2_scheme
+from hours_app.dependencies import (SessionDep, oauth2_scheme, HTMXContext, get_htmx_context, get_user,
+                                    get_current_user, ALGORITHM, SECRET_KEY)
 from hours_app.models import Sesh, UserInDB, Token, TokenData, UserBase, UserCreate, UserPublic
 from hours_app.database import Session
 
 
-SECRET_KEY = "f9208ed4f21b01559b9445e324694d6b7b0d48ab4bdece5364ce9cafbbb49079"
-ALGORITHM = "HS256"
+
 ACCESS_TOKEN_EXPIRE_MINUTES = 6000
 
 password_hash = PasswordHash.recommended()  # I assume this is me choosing HOW to hash/unhash a password
@@ -35,15 +35,6 @@ def verify_password(plain_password, hashed_password) -> str:
 
 def get_password_hash(plain_password) -> str:
     return password_hash.hash(plain_password)
-
-
-def get_user(session: Session, username: str) -> UserInDB:
-    # print("SESSSSSSIon", session)
-    user = session.exec(select(UserInDB).where(UserInDB.username == username)).first()
-    if user:
-        return user
-    else:
-        print("AHHHHHHHHHHHHHHH NOOOOOOOOOOOO USERRRR OH NOOOOOOOOOOOOOOOOOOOO 500 500 500 500 500 500 500 500")
 
 
 def authenticate_user(session: SessionDep, username: str, password: str):
@@ -68,24 +59,6 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
-
-
-async def get_current_user(session: SessionDep, token: Annotated[str, Depends(oauth2_scheme)]) -> UserInDB:
-    credentials_exception = HTTPException(
-        status_code=401, detail="invalid credentials", headers={"WWW-Authenticate": "Bearer"} # need headers
-    )
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])  # several algorithms ohhhh
-        username = payload.get("sub")
-        if username is None:
-            raise credentials_exception
-        token_data = TokenData(username=username)
-    except InvalidTokenError:  # so you give a credentials exception, not 501 server dead
-        raise credentials_exception
-    user = get_user(session, username=token_data.username)  # or just username = username?
-    if user is None:
-        raise credentials_exception
-    return user
 
 
 @router.post("/token")
@@ -124,6 +97,25 @@ async def create_user(session: SessionDep,
     session.commit()
     session.refresh(db_user)
     return db_user
+
+
+@router.put("/users/}")
+def update_user(user_id: int, username: Annotated[str, Form()], ctx: Annotated[HTMXContext, Depends(get_htmx_context)],
+                full_name: Annotated[str | None, Form()] = None):
+    user = ctx.session.get(UserInDB, user_id)
+    # if ctx.current_user.id != user.id:
+    #     raise HTTPException(status_code=401)
+    user.sqlmodel_update({"username": username, "full_name": full_name})
+    print("1233333333")
+    print("1233333333")
+    print("1233333333")
+    print("1233333333")
+    print(user)
+    print(type(user))
+    ctx.session.add(user)
+    ctx.session.commit()
+    ctx.session.refresh(user)
+    return user
 
 
 @router.get("/users/")

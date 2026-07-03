@@ -1,13 +1,13 @@
 <div class="content-section border m-2">
-<p>{{ sesh.type.name }}</p>
+<p class="h1">{{ sesh.type }}</p>
     <a href="#" class="link-underline-dark" hx-get="/specific-sesh/{{ sesh.id }}" hx-target=".target" hx-swap="innerHTML">
         <h1 class="task-title">{{ sesh.length }} minutes</h1>
     </a>
-<h2>{{ sesh.specifics }} <small>{{ sesh.day }}</small></h2>
+<h2>{{ sesh.specifics }} <small>{{ sesh.day }}, id={{ sesh.id }}</small></h2>
     {% if current_user.id == sesh.owner_id %}
         <a class="btn btn-primary"
             href="#" hx-get="/sesh-update-form/{{sesh.id}}" hx-target="closest div" hx-swap="innerHTML">Update</a>
         <a class="btn btn-danger"
-           href="#" hx-delete="/sesh-delete/{{sesh.id}}" hx-confirm="Are you sure?" hx-target="closest div" hx-swap="delete">Delete</a>
+           href="#" hx-delete="/seshs/" hx-vals='{"sesh_id": {{ sesh.id}} }' hx-confirm="Are you sure?" hx-target="closest div" hx-swap="delete">Delete</a>
     {% endif %}
 </div>

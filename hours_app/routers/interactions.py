@@ -9,7 +9,8 @@ from sqlmodel import select, and_, or_
 from pydantic import BaseModel
 
 from hours_app.models import Sesh, UserInDB, UserCreate, UserPublic, Token, SeshCreate
-from hours_app.dependencies import SessionDep, get_template_context, get_htmx_context, HTMXContext, get_current_user_or_none
+from hours_app.dependencies import SessionDep, get_template_context, get_htmx_context, HTMXContext, \
+    get_current_user_or_none, oauth2_scheme
 from hours_app.routers.users import (get_password_hash, SECRET_KEY, get_user,
                                      ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, authenticate_user)
 from hours_app.security import token_decode

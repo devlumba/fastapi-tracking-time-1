@@ -111,3 +111,14 @@ def read_specific_sesh(session: SessionDep,
 
     return sesh
 
+
+@router.get("/allseshs")  # this works when placed in users.py but doesn't when placed here wtf. like genuinely
+def read_all_seshs(session: SessionDep):
+    seshs = session.exec(select(Sesh)).all()
+    return seshs
+
+
+@router.get("/nothingburger")  # this too doesn't work lol
+def check_auth():
+    return "123"
+

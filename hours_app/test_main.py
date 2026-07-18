@@ -31,14 +31,14 @@ def test_read_main():
 
 
 def test_create_user():
-    response = client.post("/users", params={"username": "user3", "password": "secret", "confirm_password": "secret"})
+    response = client.post("/users", data={"username": "user3", "password": "secret", "confirm_password": "secret"})
     print(response.json())
     assert response.status_code == 200
 
 
 def test_login():  # login for swagger, obv, it's more about "test whether I can login in tests"
     form_data = {"username": "user3", "password": "secret"}
-    response = client.post("/users", params={"username": "user3", "password": "secret", "confirm_password": "secret"})
+    response = client.post("/users", data={"username": "user3", "password": "secret", "confirm_password": "secret"})
     response = client.post("/token", data=form_data)
     assert response.status_code == 200
 
@@ -50,7 +50,7 @@ def test_msg_json():
 
 def test_create_sesh():
     form_data = {"username": "user3", "password": "secret"}
-    client.post("/users", params={"username": "user3", "password": "secret", "confirm_password": "secret"})
+    client.post("/users", data={"username": "user3", "password": "secret", "confirm_password": "secret"})
     response = client.post("/token", data=form_data)
     assert  response.status_code == 200
     print("TEXT TEXT TEXT TEXT", response.text, response.status_code)
@@ -74,7 +74,7 @@ def test_create_sesh():
 
 def test_update_sesh():
     form_data = {"username": "user3", "password": "secret"}
-    client.post("/users", params={"username": "user3", "password": "secret", "confirm_password": "secret"})
+    client.post("/users", data={"username": "user3", "password": "secret", "confirm_password": "secret"})
     response = client.post("/token", data=form_data)
     token = response.json()["access_token"]
 
@@ -95,7 +95,7 @@ def test_update_sesh():
 
 def test_delete_sesh():
     form_data = {"username": "user3", "password": "secret"}
-    client.post("/users", params={"username": "user3", "password": "secret", "confirm_password": "secret"})
+    client.post("/users", data={"username": "user3", "password": "secret", "confirm_password": "secret"})
     response = client.post("/token", data=form_data)
     token = response.json()["access_token"]
 
@@ -111,7 +111,7 @@ def test_delete_sesh():
 
 def test_delete_sesh_404():
     form_data = {"username": "user3", "password": "secret"}
-    client.post("/users", params={"username": "user3", "password": "secret", "confirm_password": "secret"})
+    client.post("/users", data={"username": "user3", "password": "secret", "confirm_password": "secret"})
     response = client.post("/token", data=form_data)
     token = response.json()["access_token"]
 
@@ -127,11 +127,90 @@ def test_delete_sesh_404():
 
 
 def test_update_user():
-    response = client.post("/users", params={"username": "user01", "password": "secret", "confirm_password": "secret"})
-    print(response.text)
-    print(response.json())
+    form_data = {"username": "user01", "password": "secret", "confirm_password": "secret"}
+    response = client.post("/users", data=form_data)
     user_id = response.json()["id"]
-    response = client.put("")
+    response = client.post("/token", data=form_data)
+    print("TEXT", response.text)
+    print("JSON", response.json())
+
+    token_c = response.json()["access_token"]
+    print("TEXT", response.text)
+
+    response = client.put("/users", params={"user_id": user_id}, data={"username": "user02", "full_name": "yoba"},
+                          headers={"Authorization": f"Bearer {token_c}"})
+    print("TEXT", response.text)
+    print(response.json())
     assert response.status_code == 200
+
+
+def test_delete_user():
+    form_data = {"username": "user01", "password": "secret", "confirm_password": "secret"}
+    response = client.post("/users", data=form_data)
+    user_id = response.json()["id"]
+    user_username = response.json()["username"]
+    response = client.post("/token", data=form_data)
+
+    token_c = response.json()["access_token"]
+    print("token is ", token_c)
+    response = client.delete("/users", params={"user_id": user_id}, headers={"Authorization": f"Bearer {token_c}"})
+    assert response.status_code == 200
+
+    response = client.get(f"/users/{user_username}")
+    assert response.status_code == 404
+
+
+
+def test_delete_user_404():
+    form_data = {"username": "user01", "password": "secret", "confirm_password": "secret"}
+    response = client.post("/users", data=form_data)
+    user_id = response.json()["id"]
+    user_username = response.json()["username"]
+    response = client.post("/token", data=form_data)
+
+    token_c = response.json()["access_token"]
+    print("token is ", token_c)
+    response = client.delete("/users", params={"user_id": user_id}, headers={"Authorization": f"Bearer {token_c}"})
+    response = client.get(f"/users/{user_username}")
+    assert response.status_code == 404
+
+
+def test_read_own_sesh():
+    form_data = {"username": "user01", "password": "secret", "confirm_password": "secret"}
+    response = client.post("/users", data=form_data)
+    response = client.post("/token", data=form_data)
+    token = response.json()["access_token"]
+    response = client.post("/seshs", data={"sesh_length": 1, "sesh_type": "programming", "sesh_day": "2026-06-08"},
+                           headers={"Authorization": f"Bearer {token}"})
+    response = client.post("/seshs", data={"sesh_length": 1, "sesh_type": "programming", "sesh_day": "2026-06-08"},
+                           headers={"Authorization": f"Bearer {token}"})
+    response = client.get("/users/me/seshs", headers={"Authorization": f"Bearer {token}"})
+    print("OWN SESHS ARE", response.text)
+    assert response.status_code == 200
+
+
+def test_login_header():
+    form_data = {"username": "user01", "password": "secret", "confirm_password": "secret"}
+    response = client.post("/users", data=form_data)
+    response = client.post("/token", data=form_data)
+    token_h = response.json()["access_token"]
+    response = client.get("/users/me", headers={"Authorization": f"Bearer {token_h}"})
+    assert response.status_code == 200
+
+
+def test_login_cookie():
+    form_data = {"username": "user01", "password": "secret", "confirm_password": "secret"}
+    response = client.post("/users", data=form_data)
+    response = client.post("/token", data=form_data)
+    token_c = response.json()["access_token"]
+    client.cookies.set(name="access_token", value=token_c, path="/users")
+    response = client.get("/users/me")
+    print(response.cookies)
+    print(response.text)
+    assert response.status_code == 200
+
+
+def test_logout():
+    pass
 
 

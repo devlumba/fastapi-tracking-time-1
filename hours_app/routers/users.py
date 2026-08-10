@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 import jwt
-from fastapi import FastAPI, Depends, APIRouter, Query, Form, Cookie
+from fastapi import FastAPI, Depends, APIRouter, Query, Form, Cookie, Request, status
 from fastapi.responses import RedirectResponse
 from fastapi.exceptions import HTTPException
 from fastapi.security import OAuth2, OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -17,7 +17,6 @@ from hours_app.models import Sesh, UserInDB, Token, TokenData, UserBase, UserCre
 from hours_app.database import Session
 from hours_app.templates import templates
 from hours_app.config import settings
-
 
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 6000
@@ -82,7 +81,7 @@ async def create_user(ctx: Annotated[HTMXContext, Depends(get_htmx_context)],
                       username: Annotated[str, Form()],
                       password: Annotated[str, Form()],
                       confirm_password: Annotated[str, Form()],
-                      full_name: Annotated[str, Form()] | None = None):
+                      full_name: Annotated[str | None, Form()] = None):
     user = UserCreate(username=username, password=password, full_name=full_name)
     if confirm_password != password:
         raise HTTPException(status_code=401, detail="Passwords Not Matching")
@@ -123,36 +122,66 @@ async def create_user(ctx: Annotated[HTMXContext, Depends(get_htmx_context)],
         max_age=60 * 60 * 24 * 7,
         path = "/"
     )
-
+    print(full_name)
+    print(full_name)
+    print(full_name)
+    print(full_name)
+    print(db_user, db_user.full_name)
     return template_response
 
-
-@router.put("/users/")
+@router.put("/users/{user_id}")
 def update_user(user_id: int, username: Annotated[str, Form()], ctx: Annotated[HTMXContext, Depends(get_htmx_context)],
                 full_name: Annotated[str | None, Form()] = None):
     user = ctx.session.get(UserInDB, user_id)
 
-    if not ctx.current_user:
-        raise HTTPException(status_code=401)
-    if not user:
-        raise HTTPException(status_code=404, detail="no such user")
-    if user.id != ctx.current_user.id:
-        raise HTTPException(status_code=403, detail="not u")
+    htmx_header = ctx.request.headers.get("HX-Request") == "true"
+    if not htmx_header:
+        if not ctx.current_user:
+            raise HTTPException(status_code=401)
+        if not user:
+            raise HTTPException(status_code=404, detail="no such user")
+        if user.id != ctx.current_user.id:
+            raise HTTPException(status_code=403, detail="not u")
+    user_public = UserPublic.model_validate(user)
 
     user.sqlmodel_update({"username": username, "full_name": full_name})
-    print("1233333333")
-    print("1233333333")
-    print("1233333333")
-    print("1233333333")
     print(user)
     print(type(user))
     ctx.session.add(user)
     ctx.session.commit()
     ctx.session.refresh(user)
-    return user
+
+    if not htmx_header:
+        return UserPublic.model_validate(user)
+
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user_public.username}, expires_delta=access_token_expires
+    )
+    context = get_template_context(ctx, {"user": user_public, "current_user": user_public})
+    template_response = templates.TemplateResponse(
+        request=ctx.request,
+        name="specific_user.html",
+        context=context
+    )
+    template_response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=settings.COOKIE_HTTPONLY,
+        secure=settings.COOKIE_SECURE,  # should set to True in production(HTTPS)
+        samesite="lax",  # CORS stuff, lax allows between site cookie sending
+        domain=settings.COOKIE_DOMAIN,
+        max_age=60 * 60 * 24 * 7,
+        path = "/"
+    )
+
+    if user.id != ctx.current_user.id:
+        return templates.TemplateResponse(ctx.request, name="base.html", context={"current_user": ctx.current_user,
+                                                                              "message": "ur not the owner of the account"})
+    return template_response
 
 
-@router.delete("/users/")
+@router.delete("/users/{user_id}")
 def delete_user(ctx: Annotated[HTMXContext, Depends(get_htmx_context)], user_id: int):
     user = ctx.session.get(UserInDB, user_id)
     if not ctx.current_user:  # not sure i need this?
@@ -161,30 +190,68 @@ def delete_user(ctx: Annotated[HTMXContext, Depends(get_htmx_context)], user_id:
         raise HTTPException(status_code=404, detail="no such user")
     if user.id != ctx.current_user.id:
         raise HTTPException(status_code=403, detail="not u")
-
     ctx.session.delete(user)
-    return "user deleted"
+    ctx.session.commit()
 
+    htmx_header = ctx.request.headers.get("HX-Request") == "true"
+    if not htmx_header:
+        return "user deleted"
+
+    template_response = templates.TemplateResponse(
+        request=ctx.request,
+        name="return_message.html",
+        context={"message": "Account Deleted Successfully"}
+    )
+    template_response.set_cookie(
+        key="access_token",
+        value="",
+        httponly=settings.COOKIE_HTTPONLY,
+        secure=settings.COOKIE_SECURE,  # should set to True in production(HTTPS)
+        samesite="lax",  # CORS stuff, lax allows between site cookie sending
+        domain=settings.COOKIE_DOMAIN,
+        max_age=0,
+        path = "/"
+    )
+
+    template_response.headers["HX-Redirect"] = "/interactions"
+
+    return template_response
 
 @router.get("/users/")
-async def read_users_all(session: SessionDep) -> list[UserPublic]:
-    users = session.exec(select(UserInDB)).all()
-    return users
+async def read_users_all(ctx: Annotated[HTMXContext, Depends(get_htmx_context)]):
+    users = ctx.session.exec(select(UserInDB)).all()
+    users_public = [UserPublic.model_validate(u) for u in users]
+    htmx_header = ctx.request.headers.get("HX-Request") == "true"
+    if not htmx_header:
+        return users_public
 
-#
-# @router.get("/users/{username:str}")
-# async def read_specific_user(session: SessionDep, username: str) -> UserPublic:
-#     user = session.exec(select(UserInDB).where(UserInDB.username==username)).first()
-#     if not user:
-#         raise HTTPException(status_code=404, detail='fot nound')
-#     return user
-#
+    return templates.TemplateResponse(request=ctx.request,
+                                      name="list_users.html",
+                                      context={"users": users_public, "current_user": ctx.current_user})
 
-@router.get("/users/me")
+
+@router.get("/me")
 async def read_own_profile(ctx: Annotated[HTMXContext, Depends(get_htmx_context)]):
     if not ctx.current_user:
         raise HTTPException(status_code=401)
-    return ctx.current_user
+    htmx_header = ctx.request.headers.get("HX-Request") == "true"
+    if not htmx_header:
+        return ctx.current_user
+    user_public = UserPublic.model_validate(ctx.current_user)
+    return templates.TemplateResponse(ctx.request, name="specific_user.html", context={"user": user_public, "current_user": ctx.current_user})
+
+
+@router.get("/users/{user_id}")
+async def read_specific_user(ctx: Annotated[HTMXContext, Depends(get_htmx_context)], user_id: int) -> UserPublic:
+    user = ctx.session.get(UserInDB, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail='fot nound')
+    htmx_header = ctx.request.headers.get("HX-Request") == "true"
+    if not htmx_header:
+        return user
+    user_public = UserPublic.model_validate(user)
+    return templates.TemplateResponse(ctx.request, name="specific_user.html", context={"user": user_public, "current_user": ctx.current_user})
+
 
 
 @router.get("/users/me/seshs")
@@ -199,7 +266,30 @@ async def read_own_seshs(ctx: Annotated[HTMXContext, Depends(get_htmx_context)])
 async def logout(ctx: Annotated[HTMXContext, Depends(get_htmx_context)]):
     if not ctx.current_user:
         raise HTTPException(status_code=401)
-    pass
+
+    htmx_header = ctx.request.headers.get("HX-Request") == "true"
+    if not htmx_header:
+        return "Successfully logged out"
+
+    template_response = templates.TemplateResponse(
+        request=ctx.request,
+        name="return_message.html",
+        context={"message": "Account Deleted Successfully"}
+    )
+    template_response.set_cookie(
+        key="access_token",
+        value="",
+        httponly=settings.COOKIE_HTTPONLY,
+        secure=settings.COOKIE_SECURE,  # should set to True in production(HTTPS)
+        samesite="lax",  # CORS stuff, lax allows between site cookie sending
+        domain=settings.COOKIE_DOMAIN,
+        max_age=0,
+        path = "/"
+    )
+
+    template_response.headers["HX-Redirect"] = "/interactions"
+
+    return template_response
 
 
 @router.get("/allseshs")

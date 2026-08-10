@@ -24,8 +24,7 @@ def read_seshs(session: SessionDep, ctx: Annotated[HTMXContext, Depends(get_htmx
     return seshs
 
 
-
-@router.post("/")
+@router.post("/", dependencies=[Depends(oauth2_scheme)])
 def create_seshs(ctx: Annotated[HTMXContext, Depends(get_htmx_context)],
                  sesh_length: Annotated[int, Form()],
                  sesh_desc: Annotated[str | None, Form()] = None,  # i COULD add annotation with restrictions here # todoooooooooooooooo
@@ -76,6 +75,12 @@ def delete_seshs(sesh_id: int, ctx: Annotated[HTMXContext, Depends(get_htmx_cont
     return templates.TemplateResponse(ctx.request, name="base.html", context={"current_user": ctx.current_user,
                                                                               "message": "Deleted successfully"})
 
+@router.get("/allseshs")
+def read_all_seshs(session: SessionDep):
+    seshs = session.exec(select(Sesh)).all()
+    return seshs
+
+
 
 @router.put("/{sesh_id}")
 def update_sesh(
@@ -97,28 +102,28 @@ def update_sesh(
     ctx.session.add(db_sesh)
     ctx.session.commit()
     ctx.session.refresh(db_sesh)
-    return db_sesh
+
+
+    htmx_header = ctx.request.headers.get("HX-Request") == "true"
+    if not htmx_header:
+        return db_sesh
+    return templates.TemplateResponse(ctx.request, name="specific_sesh.html", context={"current_user": ctx.current_user,
+                                                      "sesh": db_sesh})
 
 
 @router.get("/{sesh_id}")
-def read_specific_sesh(session: SessionDep,
+def read_specific_sesh(ctx: Annotated[HTMXContext, Depends(get_htmx_context)],
                 sesh_id: int, current_user: Annotated[UserInDB, Depends(get_current_user)]):
-    sesh = session.get(Sesh, sesh_id)
+    sesh = ctx.session.get(Sesh, sesh_id)
     if not sesh:
         raise HTTPException(status_code=404, detail="nope mate")
     if sesh.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not Your Sesh")
 
-    return sesh
+    htmx_header = ctx.request.headers.get("HX-Request") == "true"
+    if not htmx_header:
+        return sesh
 
-
-@router.get("/allseshs")  # this works when placed in users.py but doesn't when placed here wtf. like genuinely
-def read_all_seshs(session: SessionDep):
-    seshs = session.exec(select(Sesh)).all()
-    return seshs
-
-
-@router.get("/nothingburger")  # this too doesn't work lol
-def check_auth():
-    return "123"
+    context = get_template_context(ctx, {"sesh": sesh})
+    return templates.TemplateResponse(ctx.request, name="specific_sesh.html", context=context)
 

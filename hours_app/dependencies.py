@@ -60,7 +60,7 @@ def get_current_user_or_none(session: SessionDep, request: Request) -> UserInDB:
         header_token = header_token[7:]
     user_true = False
     print("cookie token is", token)
-    print("header token is ", header_token)
+    print("header token is", header_token)
     if not token and not header_token:
         print("no bueno")
         return None

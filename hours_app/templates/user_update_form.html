@@ -1,7 +1,11 @@
 <div class="content-section" style="height: 260px;">
 <form action="" method="post">
-    <input value="{{ user.username }}" placeholder="username" name="username" type="text">
-    <input value="{{ user.full_name }}" placeholder="full name" name="full_name" type="text">
-    <button hx-post="/user-update/{{user.id}}" hx-swap="innerHTML" hx-target="closest .target" type="submit">click</button>
+    <label for="input_username">Username</label>
+    <input id="input_username" value="{{ user.username }}" placeholder="username" name="username" type="text">
+    <label for="input_full_name">Full Name</label>
+    <input id="input_full_name" value="{{ user.full_name }}" placeholder="full name" name="full_name" type="text">
+    <button hx-put="/users/{{user.id}}" hx-swap="innerHTML" hx-target="closest .target" type="submit">click</button>
 </form>
 </div>
+
+

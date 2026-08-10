@@ -8,7 +8,7 @@
   </div>
     <div class="mb-3">
     <label for="inputType" class="form-label">Sesh Type</label>
-      <input name="sesh_type" id="inputType" class="form-control" placeholder="sesh_type" name="sesh_type" type="text" list="seshtypename">
+      <input value="programming" name="sesh_type" id="inputType" class="form-control" placeholder="sesh_type" name="sesh_type" type="text" list="seshtypename">
       <datalist id="seshtypename">
         <option value="programming">
         <option value="duolingo">
@@ -23,7 +23,7 @@
     </div>
     <div class="mb-3">
     <label class="form-check-label" for="inputDay">Sesh Date</label>
-    <input name="sesh_day" type="date" class="form-date" id="inputDay">
+    <input value="{{ today_day }}" name="sesh_day" type="date" class="form-date" id="inputDay">
     </div>
     <button class="btn btn-primary" hx-post="/seshs/" hx-swap="innerHTML" hx-target="closest .target" type="submit">click</button>
 

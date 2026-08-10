@@ -2,11 +2,12 @@
 <form action="" method="post">
   <div class="mb-3">
     <label for="inputLength" class="form-label">Length of the Sesh</label>
-    <input name="sesh_length" type="text" class="form-control" id="inputLength">
+    <input name="sesh_length" type="text" class="form-control" id="inputLength" value="{{ sesh.length }}">
   </div>
     <div class="mb-3">
     <label for="inputType" class="form-label">Sesh Type</label>
-      <input name="sesh_type" id="inputType" class="form-control" placeholder="sesh_type" name="sesh_type" type="text" list="seshtypename">
+      <input name="sesh_type" id="inputType" class="form-control" placeholder="sesh_type" name="sesh_type" type="text" list="seshtypename"
+      value="{{ sesh.type }}">
       <datalist id="seshtypename">
         <option value="programming">
         <option value="duolingo">
@@ -17,13 +18,13 @@
     </div>
     <div class="mb-3">
     <label for="inputDesc" class="form-label">Sesh Description</label>
-    <input name="sesh_desc" type="text" class="form-control" id="inputDesc">
+    <input name="sesh_desc" type="text" class="form-control" id="inputDesc" value="{{ sesh.specifics }}">
     </div>
     <div class="mb-3">
     <label class="form-check-label" for="inputDay">Sesh Date</label>
-    <input name="sesh_day" type="date" class="form-date" id="inputDay">
+    <input name="sesh_day" type="date" class="form-date" id="inputDay" value="{{ sesh.day }}">
     </div>
-    <button class="btn btn-primary" hx-post="/sesh-update/{{sesh.id}}" hx-swap="innerHTML" hx-target="closest .target" type="submit">click</button>
+    <button class="btn btn-primary" hx-put="/seshs/{{sesh.id}}" hx-swap="innerHTML" hx-target="closest .target" type="submit">click</button>
 
 </form>
 </div>

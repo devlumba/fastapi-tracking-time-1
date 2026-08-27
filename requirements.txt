@@ -5,3 +5,4 @@ a2wsgi
 pyjwt
 pwdlib
 pwdlib[argon2]
+psycopg2

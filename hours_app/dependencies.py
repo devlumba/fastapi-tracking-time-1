@@ -49,7 +49,6 @@ def get_user(session: Session, username: str) -> UserInDB:
 
 
 
-
 UserDep = Annotated[UserInDB, Depends(get_current_user)]
 
 

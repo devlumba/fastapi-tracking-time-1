@@ -2,8 +2,8 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
-    SQLALCHEMY_DATABASE_URL: str = "sqlite:///database.db"  # for docker/sqlite
-    # SQLALCHEMY_DATABASE_URL: str  # for psql
+    # DATABASE_URL: str = "sqlite:///database.db"  # for docker/sqlite  # only needed if no .env i suppose
+    DATABASE_URL: str
 
     @property
     def COOKIE_DOMAIN(self) -> str:
